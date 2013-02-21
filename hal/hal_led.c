@@ -1,7 +1,6 @@
 /**
- * Implementation of low-level API for MSP430F5438's LEDs.
+ * Implementation of low-level API for MSP430F5438A's LEDs.
  *
- * @author olopezsa13
  * @file hal_led.c
  */
 
@@ -19,8 +18,7 @@ void halLed_initialize()
 /**
  * Set the state of the LED1, either ON or OFF.
  *
- * @param flag A boolean flag to indicate whether the LED
- *             should be enabled or disabled.
+ * @param flag A boolean flag to indicate whether the LED should be enabled or disabled.
  */
 void halLed_setLed1(int flag)
 {
@@ -34,8 +32,7 @@ void halLed_setLed1(int flag)
 /**
  * Set the state of the LED2, either ON or OFF.
  *
- * @param flag A boolean flag to indicate whether the LED
- *             should be enabled or disabled.
+ * @param flag A boolean flag to indicate whether the LED should be enabled or disabled.
  */
 void halLed_setLed2(int flag)
 {
