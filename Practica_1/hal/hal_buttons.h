@@ -19,11 +19,6 @@
 #define JOYSTICK_ALL    ( BIT5 | BIT4 | BIT3 | BIT2 | BIT1 )
 
 void halButtons_initialize();
-void halButtons_setInterruptions(char bits, char flag);
-void halButtons_toggleInterruptions(char bits);
-
 void halJoystick_initialize();
-void halJoystick_setInterruptions(char bits, char flag);
-void halJoystick_toggleInterruptions(char bits);
 
 #endif

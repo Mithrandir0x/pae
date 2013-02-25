@@ -58,7 +58,7 @@
 /*-------------------------------------------------------------
  *                  Function Prototypes 
  * ------------------------------------------------------------*/ 
-void halLcdInit(void);                   
+void halLcdInit(void);
 void halLcdShutDown(void);
 void halLcdBackLightInit(void);
 void halLcdSetBackLight(unsigned char BackLightLevel);

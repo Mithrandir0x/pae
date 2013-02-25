@@ -1,6 +1,5 @@
 /**
- * Implementation of low-level API for MSP430F5438A's S1 and S2 buttons,
- * and the JOYSTICK.
+ * Implementation of low-level API for MSP430F5438A's S1 and S2 buttons.
  *
  * @file hal_buttons.c
  */
@@ -19,32 +18,6 @@ void halButtons_initialize()
 	P2IE  |=  BUTTON_ALL; // Enable interruptions for P2.6 and P2.7.
 	P2OUT |=  BUTTON_ALL; // Set initial state as "Pull-up"
 	P2IES &= ~BUTTON_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
-}
-
-void halButtons_setInterruptions(char bits, char flag)
-{
-    if ( flag == 0 )
-        P2IE &= ~( bits & BUTTON_ALL );
-    else
-        P2IE |= ( bits & BUTTON_ALL );
-}
-
-void halButtons_toggleInterruptions(char bits)
-{
-    P2IE ^= ( bits & BUTTON_ALL );
-}
-
-void halJoystick_toggleInterruptions(char bits)
-{
-    P2IE ^= ( bits & JOYSTICK_ALL );
-}
-
-void halJoystick_setInterruptions(char bits, char flag)
-{
-    if ( flag == 0 )
-        P2IE &= ~( bits & JOYSTICK_ALL );
-    else
-        P2IE |= ( bits & JOYSTICK_ALL );
 }
 
 /**
