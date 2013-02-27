@@ -12,7 +12,7 @@
 #include <hal_lcd.h>
 #include <hal_led.h>
 
-char saludo[17]= "PRACT 2";
+char saludo[17]= "PRACTICA 2";
 char cadena[17];
 char borrado[] = "                 ";  
 unsigned char contraste   = 0x64;
@@ -20,6 +20,7 @@ unsigned char iluminacion = 30;
 unsigned char linea = 1;
 char estado = 0;
 char estado_anterior = 8;
+unsigned char bitled = BIT0;
 long int i;
 
 
@@ -81,7 +82,7 @@ void delay(long unsigned int seconds)
  **************************************************************************/
 void init_botons(void)
 {
-    //Configuramos botones y leds:
+    /*/Configuramos botones y leds:
     P1DIR |= 0x03;  //Puertos P1.0 y P1.1 como salidas (Leds)
     P1OUT |= 0x01;  //Inicializamos puerto P1.0 a 1,
     P1OUT &= 0xFD;  // y P1.1 a 0, para leds en alternancia
@@ -101,17 +102,17 @@ void init_botons(void)
     P2REN |= 0x3E;  //con resistencia activada
     P2OUT |= 0x3E;  // de pull-up
     P2IE |= 0x3E;   //Interrupciones activadas en P2.1 a P2.5,
-    P2IES &= ~0x3E; // con transicion L->H
+    P2IES &= ~0x3E; // con transicion L->H */
     
-    /* halLed_sx_initialize();
+    halLed_sx_initialize();
     halLed_sx_setLed(LED_S1, ON);
     halLed_sx_setLed(LED_S2, OFF);
 
     halButtons_initialize();
-    halButtons_toggleInterruptions(BUTTON_ALL);
+    halButtons_setInterruptions(BUTTON_ALL, ON);
 
     halJoystick_initialize();
-    halJoystick_toggleInterruptions(JOYSTICK_ALL); */
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON);
 }
 
 /*****************************************************************************
@@ -125,7 +126,8 @@ void init_botons(void)
  
 void config_P4_LEDS (void)
 {
-
+    halLed_rx_initialize();
+    halLed_rx_setLed(LED_RX_ALL, OFF);
 }
 
 
@@ -155,6 +157,9 @@ void main(void)
     WDTCTL = WDTPW+WDTHOLD; // Paramos el watchdog timer
 
     init_botons();          // Iniciamos los botones y Leds.
+
+    config_P4_LEDS();       // Iniciamos los LEDS del puerto 4
+
     _enable_interrupt();    // Activamos las interrupciones a nivel global del chip
     init_LCD();             // Inicializamos la pantalla
 
@@ -165,12 +170,23 @@ void main(void)
     {
         if (estado_anterior != estado)          // Dependiendo el valor del estado se encenderá un LED externo u otro.
         {
-            sprintf(cadena," estado %01d", estado);   // Guardamos en cadena lo siguiente frase: estado "valor del estado"
+            //clearLine(linea);
+            sprintf(cadena," estado %02d", estado);   // Guardamos en cadena lo siguiente frase: estado "valor del estado"
             write(cadena, linea);              // Escribimos cadena
             estado_anterior = estado;           // Actualizamos el valor de estado_anterior, para que no esté siempre escribiendo.
         }
-        P1OUT^= 0x03; // Encender los LEDS con intermitencia
-        delay(25000); // retraso de aprox 1 segundo
+
+        halLed_rx_setLed(LED_RX_ALL, OFF);
+        halLed_rx_setLed(bitled, ON);
+        if ( estado <= 2 && estado == 5 )
+            halLed_sx_toggleLed(LED_SX_ALL); //P1OUT^= 0x03; // Encender los LEDS con intermitencia
+        delay(2); // retraso de aprox 1 segundo
+
+        if ( bitled == LED_R8 )
+            bitled = BIT0;
+        else
+            bitled = bitled << 1;
+
     }
     while(1);
 }
@@ -190,11 +206,8 @@ void main(void)
 #pragma vector=PORT2_VECTOR  //interrupción de los botones. Actualiza el valor de la variable global estado.
 __interrupt void Port2_ISR(void)
 {
-    P2IE &= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) desactivadas
-    P2IE &= 0x3E;   //interrupciones joystick (2.1-2.5) desactivadas
-    
-    //halButtons_setInterruptions(BUTTON_ALL, ON);
-    //halJoystick_setInterruptions(JOYSTICK_ALL, ON);
+    halButtons_setInterruptions(BUTTON_ALL, ON);    // P2IE &= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) desactivadas
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON); // P2IE &= 0x3E;   //interrupciones joystick (2.1-2.5) desactivadas
 
     /**********************************************************+
         A RELLENAR POR EL ALUMNO BLOQUE CASE 
@@ -207,25 +220,50 @@ __interrupt void Port2_ISR(void)
         Joystick up, estado =6 y leds off
         Joystick down, estado =7 y leds off
      ***********************************************************/
-     
 
     switch ( P2IFG )
     {
         case BUTTON_S1:
+            halLed_sx_setLed(LED_SX_ALL, OFF);
             estado = 1;
+            break;
+        case BUTTON_S2:
+            halLed_sx_setLed(LED_S1, ON);
+            halLed_sx_setLed(LED_S2, OFF);
+            estado = 2;
+            break;
+        case JOYSTICK_LEFT:
+            halLed_sx_setLed(LED_SX_ALL, OFF);
+            estado = 3;
+            break;
+        case JOYSTICK_RIGHT:
+            halLed_sx_setLed(LED_SX_ALL, OFF);
+            estado = 4;
+            break;
+        case JOYSTICK_CENTER:
+            halLed_sx_setLed(LED_S1, OFF);
+            halLed_sx_setLed(LED_S2, ON);
+            estado = 5;
+            break;
+        case JOYSTICK_UP:
+            halLed_sx_setLed(LED_SX_ALL, OFF);
+            estado = 6;
+            break;
+        case JOYSTICK_DOWN:
+            halLed_sx_setLed(LED_SX_ALL, OFF);
+            estado = 7;
             break;
     }
 
-    
     /***********************************************
      * HASTA AQUI BLOQUE CASE
      ***********************************************/
     
-    P2IFG = 0;    //limpiamos todas las interrupciones
-    P2IE |= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) reactivadas
-    P2IE |= 0x3E;  //interrupciones joystick (2.1-2.5) reactivadas
+    //P2IFG = 0;    //limpiamos todas las interrupciones
+    //P2IE |= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) reactivadas
+    //P2IE |= 0x3E;  //interrupciones joystick (2.1-2.5) reactivadas
 
-    //halButtons_setInterruptions(BUTTON_ALL, OFF);
-    //halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
+    halButtons_setInterruptions(BUTTON_ALL, OFF);
+    halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
  return;
 }

@@ -22,7 +22,7 @@ void halButtons_initialize()
 	P2IES &= ~BUTTON_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
 }
 
-void halButtons_setInterruptions(char bits, char flag)
+void halButtons_setInterruptions(int bits, int flag)
 {
     if ( flag == OFF )
         P2IE &= ~( bits & BUTTON_ALL );
@@ -30,7 +30,7 @@ void halButtons_setInterruptions(char bits, char flag)
         P2IE |= ( bits & BUTTON_ALL );
 }
 
-void halButtons_toggleInterruptions(char bits)
+void halButtons_toggleInterruptions(int bits)
 {
     P2IE ^= ( bits & BUTTON_ALL );
 }
@@ -48,7 +48,7 @@ void halJoystick_initialize()
     P2IES &= ~JOYSTICK_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
 }
 
-void halJoystick_setInterruptions(char bits, char flag)
+void halJoystick_setInterruptions(int bits, int flag)
 {
     if ( flag == OFF )
         P2IE &= ~( bits & JOYSTICK_ALL );
@@ -56,7 +56,7 @@ void halJoystick_setInterruptions(char bits, char flag)
         P2IE |= ( bits & JOYSTICK_ALL );
 }
 
-void halJoystick_toggleInterruptions(char bits)
+void halJoystick_toggleInterruptions(int bits)
 {
     P2IE ^= ( bits & JOYSTICK_ALL );
 }
