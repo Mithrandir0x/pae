@@ -7,6 +7,7 @@
 
 #include <msp430x54xa.h>
 #include "hal_buttons.h"
+#include "hal_common.h"
 
 /**
  * Initialize registers to enable the buttons.
@@ -23,7 +24,7 @@ void halButtons_initialize()
 
 void halButtons_setInterruptions(char bits, char flag)
 {
-    if ( flag == 0 )
+    if ( flag == OFF )
         P2IE &= ~( bits & BUTTON_ALL );
     else
         P2IE |= ( bits & BUTTON_ALL );
@@ -49,7 +50,7 @@ void halJoystick_initialize()
 
 void halJoystick_setInterruptions(char bits, char flag)
 {
-    if ( flag == 0 )
+    if ( flag == OFF )
         P2IE &= ~( bits & JOYSTICK_ALL );
     else
         P2IE |= ( bits & JOYSTICK_ALL );

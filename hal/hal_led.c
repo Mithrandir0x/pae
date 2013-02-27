@@ -5,6 +5,7 @@
  */
 
 #include <msp430x54xa.h>
+#include "hal_common.h"
 #include "hal_led.h"
 
 /**
@@ -24,7 +25,7 @@ void halLed_sx_initialize()
  */
 void halLed_sx_setLed(char leds, char flag)
 {
-	if ( flag == 0 )
+	if ( flag == OFF )
 		P1OUT &= ~( leds & LED_SX_ALL ); // Disable the LED // MASK = 0xFF - BIT0
 	else
 		P1OUT |= ( leds & LED_SX_ALL ); // Enable the LEDs

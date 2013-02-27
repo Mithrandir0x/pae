@@ -6,9 +6,6 @@
 #ifndef _HAL_LED_
 #define _HAL_LED_
 
-#define LED_ON  1
-#define LED_OFF 0
-
 #define LED_S1 BIT0 // P1.0
 #define LED_S2 BIT1 // P1.1
 #define LED_SX_ALL ( BIT1 | BIT0 )

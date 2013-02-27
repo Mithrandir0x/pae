@@ -66,7 +66,7 @@ void delay(long unsigned int seconds)
     // Preferable to have it as unsigned, as we would have more
     // numbers if any person wishes to stall for more time...
     volatile long unsigned int ticks = 25000 * seconds;
-    while ( --ticks );
+    while ( ticks-- );
 }
 
 
@@ -82,9 +82,9 @@ void delay(long unsigned int seconds)
 void init_botons(void)
 {
     //Configuramos botones y leds:
-    P1DIR |= 0x03;  //Puertos P1.0 y P1.1 como salidas (Leds) // P1OUT |= ( BIT0 | BIT1 );
-    P1OUT |= 0x01;  //Inicializamos puerto P1.0 a 1,          // P1OUT |= BIT0;
-    P1OUT &= 0xFD;  // y P1.1 a 0, para leds en alternancia   // P1OUT &= ~BIT1;
+    P1DIR |= 0x03;  //Puertos P1.0 y P1.1 como salidas (Leds)
+    P1OUT |= 0x01;  //Inicializamos puerto P1.0 a 1,
+    P1OUT &= 0xFD;  // y P1.1 a 0, para leds en alternancia
 
 
     P2DIR &= ~0xC0; //Puertos P2.6 y P2.7 como entradas (botones S1 y S2)
@@ -193,6 +193,9 @@ __interrupt void Port2_ISR(void)
     P2IE &= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) desactivadas
     P2IE &= 0x3E;   //interrupciones joystick (2.1-2.5) desactivadas
     
+    //halButtons_setInterruptions(BUTTON_ALL, ON);
+    //halJoystick_setInterruptions(JOYSTICK_ALL, ON);
+
     /**********************************************************+
         A RELLENAR POR EL ALUMNO BLOQUE CASE 
      
@@ -221,5 +224,8 @@ __interrupt void Port2_ISR(void)
     P2IFG = 0;    //limpiamos todas las interrupciones
     P2IE |= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) reactivadas
     P2IE |= 0x3E;  //interrupciones joystick (2.1-2.5) reactivadas
+
+    //halButtons_setInterruptions(BUTTON_ALL, OFF);
+    //halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
  return;
 }
