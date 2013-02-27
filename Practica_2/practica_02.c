@@ -7,6 +7,7 @@
 #include <msp430x54xA.h>
 #include <stdio.h>
 
+#include <hal_common.h>
 #include <hal_buttons.h>
 #include <hal_lcd.h>
 #include <hal_led.h>
@@ -102,6 +103,15 @@ void init_botons(void)
     P2IE |= 0x3E;   //Interrupciones activadas en P2.1 a P2.5,
     P2IES &= ~0x3E; // con transicion L->H
     
+    /* halLed_sx_initialize();
+    halLed_sx_setLed(LED_S1, ON);
+    halLed_sx_setLed(LED_S2, OFF);
+
+    halButtons_initialize();
+    halButtons_toggleInterruptions(BUTTON_ALL);
+
+    halJoystick_initialize();
+    halJoystick_toggleInterruptions(JOYSTICK_ALL); */
 }
 
 /*****************************************************************************
@@ -198,7 +208,7 @@ __interrupt void Port2_ISR(void)
 
     switch ( P2IFG )
     {
-    case BUTTON_S1:
+        case BUTTON_S1:
             estado = 1;
             break;
     }

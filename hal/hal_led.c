@@ -12,13 +12,14 @@
  */
 void halLed_sx_initialize()
 {
-	P1DIR |= LED_SX_ALL; //Port lines P1.0 y P1.1 as OUTPUT
+	P1DIR |= LED_SX_ALL;  // Port lines P1.0 and P1.1 as OUTPUT
+	//P1SEL &= ~LED_SX_ALL; // Port lines P1.0 and P1.1 as GPIO
 }
 
 /**
  * Set the state of the LED1, either ON or OFF.
  *
- * @param leds An integer to indicate which leds should be enabled.
+ * @param leds An character to indicate which leds should be enabled.
  * @param flag A boolean flag to indicate whether the LED should be enabled or disabled.
  */
 void halLed_sx_setLed(char leds, char flag)
@@ -30,4 +31,9 @@ void halLed_sx_setLed(char leds, char flag)
 
 	// Why the "& LED_SX_ALL"?
 	// Protect the other bits from being tampered.
+}
+
+void halLed_sx_toggleLed(char leds)
+{
+    P1OUT ^= ( leds & LED_SX_ALL );
 }
