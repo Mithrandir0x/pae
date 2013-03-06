@@ -156,6 +156,8 @@ void main(void)
 {
     WDTCTL = WDTPW+WDTHOLD; // Paramos el watchdog timer
 
+
+
     init_botons();          // Iniciamos los botones y Leds.
 
     config_P4_LEDS();       // Iniciamos los LEDS del puerto 4
@@ -178,7 +180,7 @@ void main(void)
 
         halLed_rx_setLed(LED_RX_ALL, OFF);
         halLed_rx_setLed(bitled, ON);
-        if ( estado <= 2 && estado == 5 )
+        if ( estado <= 2 || estado == 5 )
             halLed_sx_toggleLed(LED_SX_ALL); //P1OUT^= 0x03; // Encender los LEDS con intermitencia
         delay(2); // retraso de aprox 1 segundo
 
@@ -206,8 +208,8 @@ void main(void)
 #pragma vector=PORT2_VECTOR  //interrupción de los botones. Actualiza el valor de la variable global estado.
 __interrupt void Port2_ISR(void)
 {
-    halButtons_setInterruptions(BUTTON_ALL, ON);    // P2IE &= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) desactivadas
-    halJoystick_setInterruptions(JOYSTICK_ALL, ON); // P2IE &= 0x3E;   //interrupciones joystick (2.1-2.5) desactivadas
+    halButtons_setInterruptions(BUTTON_ALL, OFF);    // P2IE &= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) desactivadas
+    halJoystick_setInterruptions(JOYSTICK_ALL, OFF); // P2IE &= 0x3E;   //interrupciones joystick (2.1-2.5) desactivadas
 
     /**********************************************************+
         A RELLENAR POR EL ALUMNO BLOQUE CASE 
@@ -259,11 +261,11 @@ __interrupt void Port2_ISR(void)
      * HASTA AQUI BLOQUE CASE
      ***********************************************/
     
-    //P2IFG = 0;    //limpiamos todas las interrupciones
+    P2IFG = 0;    //limpiamos todas las interrupciones
     //P2IE |= 0xC0;   //interrupciones botones S1 y S2 (P2.6 y P2.7) reactivadas
     //P2IE |= 0x3E;  //interrupciones joystick (2.1-2.5) reactivadas
 
-    halButtons_setInterruptions(BUTTON_ALL, OFF);
-    halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
+    halButtons_setInterruptions(BUTTON_ALL, ON);
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON);
  return;
 }

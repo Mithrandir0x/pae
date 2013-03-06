@@ -2,10 +2,10 @@
  * @file hal_buttons.h
  */
 
-#include <msp430x54xa.h>
-
 #ifndef _HAL_BUTTONS_H_
 #define _HAL_BUTTONS_H_
+
+#include <msp430x54xa.h>
 
 #define BUTTON_S1  BIT6 // P2.6
 #define BUTTON_S2  BIT7 // P2.7
