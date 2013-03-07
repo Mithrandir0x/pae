@@ -105,8 +105,8 @@ void init_botons(void)
     P2IES &= ~0x3E; // con transicion L->H */
     
     halLed_sx_initialize();
-    halLed_sx_setLed(LED_S1, ON);
-    halLed_sx_setLed(LED_S2, OFF);
+    halLed_sx_setLed(LED_RED, ON);
+    halLed_sx_setLed(LED_YELLOW, OFF);
 
     halButtons_initialize();
     halButtons_setInterruptions(BUTTON_ALL, ON);
@@ -155,8 +155,6 @@ void init_LCD(void)
 void main(void)
 {
     WDTCTL = WDTPW+WDTHOLD; // Paramos el watchdog timer
-
-
 
     init_botons();          // Iniciamos los botones y Leds.
 
@@ -230,8 +228,8 @@ __interrupt void Port2_ISR(void)
             estado = 1;
             break;
         case BUTTON_S2:
-            halLed_sx_setLed(LED_S1, ON);
-            halLed_sx_setLed(LED_S2, OFF);
+            halLed_sx_setLed(LED_RED, ON);
+            halLed_sx_setLed(LED_YELLOW, OFF);
             estado = 2;
             break;
         case JOYSTICK_LEFT:
@@ -243,8 +241,8 @@ __interrupt void Port2_ISR(void)
             estado = 4;
             break;
         case JOYSTICK_CENTER:
-            halLed_sx_setLed(LED_S1, OFF);
-            halLed_sx_setLed(LED_S2, ON);
+            halLed_sx_setLed(LED_RED, OFF);
+            halLed_sx_setLed(LED_YELLOW, ON);
             estado = 5;
             break;
         case JOYSTICK_UP:

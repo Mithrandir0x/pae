@@ -7,8 +7,8 @@
 
 #include <msp430x54xa.h>
 
-#define LED_S1 BIT0 // P1.0
-#define LED_S2 BIT1 // P1.1
+#define LED_RED    BIT0 // P1.0
+#define LED_YELLOW BIT1 // P1.1
 #define LED_SX_ALL ( BIT1 | BIT0 )
 
 #define LED_R1 BIT0 // P4.0

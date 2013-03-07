@@ -22,13 +22,13 @@
 #define TIMER_MODE_CONTINUOUS 2
 #define TIMER_MODE_UPDOWN     3
 
-#define TIMER_B_CCR0    0
-#define TIMER_B_CCR1    2
-#define TIMER_B_CCR2    4
-#define TIMER_B_CCR3    6
-#define TIMER_B_CCR4    8
-#define TIMER_B_CCR5    10
-#define TIMER_B_CCR6    12
+#define TIMER_B_CCR0    0  // 0000
+#define TIMER_B_CCR1    2  // 0010
+#define TIMER_B_CCR2    4  // 0100
+#define TIMER_B_CCR3    6  // 0110
+#define TIMER_B_CCR4    8  // 1000
+#define TIMER_B_CCR5    10 // 1010
+#define TIMER_B_CCR6    12 // 1100
 
 #define TBCNTL BIT12 | BIT11
 #define TBSSEL BIT9 | BIT8
@@ -39,13 +39,16 @@
 #ifndef TBIE
 #define TBIE   BIT1
 #endif
+#ifndef CCIFG
+#define CCIFG BIT0
+#endif
 
-void halTimer_b_initialize();
+void halTimer_b_initialize(int source, int mode);
 void halTimer_b_setClockSource(int source);
 void halTimer_b_setMode(int mode);
-void halTimer_b_setInterruptions(int flag);
-
-void halTimer_b_setTimedInterruption(int ccr, unsigned long int time);
+void halTimer_b_setInterruptions(int boolean);
+void halTimer_b_setCCRInterruption(int ccr, int boolean);
+void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time);
 void halTimer_b_clear();
 
 #endif
