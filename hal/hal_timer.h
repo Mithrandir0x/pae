@@ -14,13 +14,13 @@
 #define TIMER_CNT_10 2 // 0x3FF
 #define TIMER_CNT_8  3 // 0xFF
 
-#define TIMER_CLKSRC_ACLK  1 // 32768 Hz == 2**15 Hz
-#define TIMER_CLKSRC_SMCLK 2 // 1 Mhz
+#define TIMER_CLKSRC_ACLK  BIT8 // 32768 Hz == 2**15 Hz
+#define TIMER_CLKSRC_SMCLK BIT9 // 1 Mhz
 
 #define TIMER_MODE_STOP       0
-#define TIMER_MODE_UP         1
-#define TIMER_MODE_CONTINUOUS 2
-#define TIMER_MODE_UPDOWN     3
+#define TIMER_MODE_UP         BIT4
+#define TIMER_MODE_CONTINUOUS BIT5
+#define TIMER_MODE_UPDOWN     ( BIT5 | BIT4 )
 
 #define TIMER_B_CCR0    0  // 0000
 #define TIMER_B_CCR1    2  // 0010

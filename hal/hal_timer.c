@@ -25,6 +25,7 @@ void halTimer_b_initialize(int source, int mode)
  */
 void halTimer_b_setClockSource(int source)
 {
+    TB0CTL &= ~TBSSEL;
     TB0CTL |= ( source & TBSSEL );
 }
 
@@ -33,6 +34,7 @@ void halTimer_b_setClockSource(int source)
  */
 void halTimer_b_setMode(int mode)
 {
+    TB0CTL &= ~MC;
     TB0CTL |= ( mode & MC );
 }
 
@@ -61,40 +63,40 @@ void halTimer_b_setInterruptions(int boolean)
  */
 void halTimer_b_setCCRInterruption(int ccr, int boolean)
 {
-	volatile unsigned int *TB0CCTLX = NULL;
+    volatile unsigned int *TB0CCTLX = NULL;
 
-	switch ( ccr )
-	{
-		case TIMER_B_CCR0:
-			TB0CCTLX = &TB0CCTL0;
-			break;
-		case TIMER_B_CCR1:
-			TB0CCTLX = &TB0CCTL1;
-			break;
-		case TIMER_B_CCR2:
-			TB0CCTLX = &TB0CCTL2;
-			break;
-		case TIMER_B_CCR3:
-			TB0CCTLX = &TB0CCTL3;
-			break;
-		case TIMER_B_CCR4:
-			TB0CCTLX = &TB0CCTL4;
-			break;
-		case TIMER_B_CCR5:
-			TB0CCTLX = &TB0CCTL5;
-			break;
-		case TIMER_B_CCR6:
-			TB0CCTLX = &TB0CCTL6;
-			break;
-	}
+    switch ( ccr )
+    {
+        case TIMER_B_CCR0:
+            TB0CCTLX = &TB0CCTL0;
+            break;
+        case TIMER_B_CCR1:
+            TB0CCTLX = &TB0CCTL1;
+            break;
+        case TIMER_B_CCR2:
+            TB0CCTLX = &TB0CCTL2;
+            break;
+        case TIMER_B_CCR3:
+            TB0CCTLX = &TB0CCTL3;
+            break;
+        case TIMER_B_CCR4:
+            TB0CCTLX = &TB0CCTL4;
+            break;
+        case TIMER_B_CCR5:
+            TB0CCTLX = &TB0CCTL5;
+            break;
+        case TIMER_B_CCR6:
+            TB0CCTLX = &TB0CCTL6;
+            break;
+    }
 
-	if ( TB0CCTLX != NULL )
-	{
-	    if ( boolean == OFF )
-	    	*TB0CCTLX &= ~CCIFG;
-	    else
-	    	*TB0CCTLX |= CCIFG;
-	}
+    if ( TB0CCTLX != NULL )
+    {
+        if ( boolean == OFF )
+            *TB0CCTLX &= ~CCIFG;
+        else
+            *TB0CCTLX |= CCIFG;
+    }
 }
 
 /**
@@ -107,7 +109,7 @@ void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
 
     // Check which clock are we using, and calculate the
     // number of ticks required for the amount of time
-    switch (TBSSEL)
+    switch ( TB0CTL & TBSSEL )
     {
         case TIMER_CLKSRC_ACLK:
             ticks = ACLK_TICKS_PER_SECOND * time;
@@ -119,7 +121,7 @@ void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
     }
 
     // Save the value to the selected register
-    switch (ccr)
+    switch ( ccr )
     {
         case TIMER_B_CCR0:
             TB0CCR0 = ticks;
