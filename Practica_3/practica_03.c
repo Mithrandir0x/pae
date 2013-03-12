@@ -49,7 +49,7 @@ void initialize_buttons()
 void initialize_timerb()
 {
     halTimer_b_initialize(TIMER_CLKSRC_ACLK, TIMER_MODE_UP);
-    halTimer_b_setCCRTimedInterruption(TIMER_B_CCR0, time * timer_multiplier);
+    halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time * timer_multiplier);
     halTimer_b_setInterruptions(ON);
 }
 
@@ -141,11 +141,11 @@ __interrupt void on_button_interruption(void)
 #pragma vector = TIMERB0_VECTOR
 __interrupt void on_timer_b_interruption()
 {
-    //halTimer_b_setCCRInterruption(TIMER_B_CCR0, OFF);
+    //halTimer_b_setCCRInterruption(TIMER_CCR0, OFF);
 
     update_leds = 1;
 
-    //halTimer_b_setCCRInterruption(TIMER_B_CCR0, ON);
+    //halTimer_b_setCCRInterruption(TIMER_CCR0, ON);
 }
 
 #pragma vector = RTC_VECTOR

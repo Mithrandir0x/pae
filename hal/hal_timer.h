@@ -9,10 +9,10 @@
 
 #include <msp430x54xa.h>
 
-#define TIMER_CNT_16 0 // 0xFFFF
-#define TIMER_CNT_12 1 // 0xFFF
-#define TIMER_CNT_10 2 // 0x3FF
-#define TIMER_CNT_8  3 // 0xFF
+#define TIMER_CNT_16 0                 // 0xFFFF
+#define TIMER_CNT_12 BIT11             // 0xFFF
+#define TIMER_CNT_10 BIT12             // 0x3FF
+#define TIMER_CNT_8  ( BIT12 | BIT11 ) // 0xFF
 
 #define TIMER_CLKSRC_ACLK  BIT8 // 32768 Hz == 2**15 Hz
 #define TIMER_CLKSRC_SMCLK BIT9 // 1 Mhz
@@ -22,13 +22,13 @@
 #define TIMER_MODE_CONTINUOUS BIT5
 #define TIMER_MODE_UPDOWN     ( BIT5 | BIT4 )
 
-#define TIMER_B_CCR0    0  // 0000
-#define TIMER_B_CCR1    2  // 0010
-#define TIMER_B_CCR2    4  // 0100
-#define TIMER_B_CCR3    6  // 0110
-#define TIMER_B_CCR4    8  // 1000
-#define TIMER_B_CCR5    10 // 1010
-#define TIMER_B_CCR6    12 // 1100
+#define TIMER_CCR0    0  // 0000
+#define TIMER_CCR1    2  // 0010
+#define TIMER_CCR2    4  // 0100
+#define TIMER_CCR3    6  // 0110
+#define TIMER_CCR4    8  // 1000
+#define TIMER_CCR5    10 // 1010
+#define TIMER_CCR6    12 // 1100
 
 #define TBCNTL BIT12 | BIT11
 #define TBSSEL BIT9 | BIT8

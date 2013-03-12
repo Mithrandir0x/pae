@@ -67,25 +67,25 @@ void halTimer_b_setCCRInterruption(int ccr, int boolean)
 
     switch ( ccr )
     {
-        case TIMER_B_CCR0:
+        case TIMER_CCR0:
             TB0CCTLX = &TB0CCTL0;
             break;
-        case TIMER_B_CCR1:
+        case TIMER_CCR1:
             TB0CCTLX = &TB0CCTL1;
             break;
-        case TIMER_B_CCR2:
+        case TIMER_CCR2:
             TB0CCTLX = &TB0CCTL2;
             break;
-        case TIMER_B_CCR3:
+        case TIMER_CCR3:
             TB0CCTLX = &TB0CCTL3;
             break;
-        case TIMER_B_CCR4:
+        case TIMER_CCR4:
             TB0CCTLX = &TB0CCTL4;
             break;
-        case TIMER_B_CCR5:
+        case TIMER_CCR5:
             TB0CCTLX = &TB0CCTL5;
             break;
-        case TIMER_B_CCR6:
+        case TIMER_CCR6:
             TB0CCTLX = &TB0CCTL6;
             break;
     }
@@ -123,25 +123,25 @@ void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
     // Save the value to the selected register
     switch ( ccr )
     {
-        case TIMER_B_CCR0:
+        case TIMER_CCR0:
             TB0CCR0 = ticks;
             break;
-        case TIMER_B_CCR1:
+        case TIMER_CCR1:
             TB0CCR1 = ticks;
             break;
-        case TIMER_B_CCR2:
+        case TIMER_CCR2:
             TB0CCR2 = ticks;
             break;
-        case TIMER_B_CCR3:
+        case TIMER_CCR3:
             TB0CCR3 = ticks;
             break;
-        case TIMER_B_CCR4:
+        case TIMER_CCR4:
             TB0CCR4 = ticks;
             break;
-        case TIMER_B_CCR5:
+        case TIMER_CCR5:
             TB0CCR5 = ticks;
             break;
-        case TIMER_B_CCR6:
+        case TIMER_CCR6:
             TB0CCR6 = ticks;
             break;
     }
