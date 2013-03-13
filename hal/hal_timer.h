@@ -42,7 +42,8 @@
 #ifndef CCIFG
 #define CCIFG BIT0
 #endif
-#define TIMER_CCR_CCIE BIT4
+#define TIMER_CCR_CCIE  BIT4
+#define TIMER_CCR_CCIFG BIT1
 
 void halTimer_b_initialize(int source, int mode);
 void halTimer_b_setClockSource(int source);
