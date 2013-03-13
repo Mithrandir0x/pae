@@ -15,4 +15,6 @@
 #define NULL (void *) 0
 #endif
 
+#define BIT12 BITC
+
 #endif

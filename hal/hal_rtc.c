@@ -7,14 +7,15 @@
 
 void halRTC_initialize(int mode, int source, int format, int enableInterruptions)
 {
-	RTCCTL1 |= ( mode   & CCTL1_RTCMODE );
-    RTCCTL1 |= ( source & CCTL1_RTCSSEL );
-    RTCCTL1 |= ( format & CCTL1_RTCBCD );
+    RTCCTL01 |= ( source & CCTL1_RTCSSEL );
+    RTCCTL01 |= ( format & CCTL1_RTCBCD );
 
     if ( enableInterruptions == OFF )
-        RTCCTL0 &= ~RTCRDYIE;
+        RTCCTL01 &= ~RTC_RTCRDYIE;
     else
-        RTCCTL0 |= RTCRDYIE;
+        RTCCTL01 |= RTC_RTCRDYIE;
+
+    RTCCTL01 |= ( mode   & CCTL1_RTCMODE );
 }
 
 void halRTC_setMode(int mode)

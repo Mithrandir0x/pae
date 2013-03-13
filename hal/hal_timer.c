@@ -93,9 +93,9 @@ void halTimer_b_setCCRInterruption(int ccr, int boolean)
     if ( TB0CCTLX != NULL )
     {
         if ( boolean == OFF )
-            *TB0CCTLX &= ~CCIFG;
+            *TB0CCTLX &= ~TIMER_CCR_CCIE;
         else
-            *TB0CCTLX |= CCIFG;
+            *TB0CCTLX |= TIMER_CCR_CCIE;
     }
 }
 

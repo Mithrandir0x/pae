@@ -20,6 +20,8 @@
 #define CCTL1_RTCSSEL ( BIT3 | BIT2 )
 #define CCTL1_RTCBCD  BIT7
 
+#define RTC_RTCRDYIE BIT12
+
 void halRTC_initialize(int mode, int source, int format, int enableInterruptions);
 
 void halRTC_setMode(int mode);
