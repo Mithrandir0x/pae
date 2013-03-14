@@ -7,6 +7,15 @@
 #include <hal_led.h>
 #include <hal_timer.h>
 
+#define EDIT_HOURS   1
+#define EDIT_MINUTES 2
+#define EDIT_SECONDS 3
+
+#define LINE_TIMER_SECONDS 1
+#define LINE_ALARM 3
+#define LINE_CRON 5
+#define LINE_TUS 6
+
 char lcd_line[17] = "PRACTICA 3";
 char lcd_clear[]  = "                 ";
 
@@ -15,10 +24,15 @@ unsigned char lcd_backlight = 30;
 
 unsigned char bitled = LED_R1;
 
+int disabled_alarm = 0;
+
+int stop_cron = 0;
+int edit_mode = OFF;
+unsigned int tag_column = 0;
+unsigned char emit_edit_mode = 0;
+
 unsigned int time_multiplier = 1;
 unsigned int time_base = 1000;
-unsigned int old_time_base = 0;
-
 typedef struct {
     int hours;
     int minutes;
@@ -49,7 +63,10 @@ void initialize_lcd()
 void initialize_buttons()
 {
     halJoystick_initialize();
-    halJoystick_setInterruptions(JOYSTICK_UP | JOYSTICK_DOWN, ON);
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON);
+
+    halButtons_initialize();
+    halButtons_setInterruptions(BUTTON_ALL, ON);
 }
 
 void initialize_timer_b()
@@ -66,11 +83,27 @@ void initialize_timer_a1()
     halTimer_a1_enableInterruptCCR0();
 }
 
+void write_time_base()
+{
+    sprintf(lcd_line, " SEC: %05u", time_multiplier * time_base);
+    halLcdPrintLine(lcd_line, LINE_TIMER_SECONDS, OVERWRITE_TEXT);
+}
+
+void write_cron()
+{
+	sprintf(lcd_line, " %02d:%02d:%02d", cron.hours, cron.minutes, cron.seconds);
+	halLcdPrintLine(lcd_line, LINE_CRON, OVERWRITE_TEXT);
+}
+
 void main()
 {
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
 
     _disable_interrupt();
+
+    cron.seconds = 0;
+    cron.minutes = 0;
+    cron.hours = 0;
 
     alarm.seconds = 0;
 	alarm.minutes = 0;
@@ -86,19 +119,79 @@ void main()
 
     halLcdPrintLine(lcd_line, 0, OVERWRITE_TEXT);
 
-    sprintf(lcd_line, " MUL: %05u", time_base);
-    halLcdPrintLine(lcd_line, 1, OVERWRITE_TEXT);
+    write_time_base();
+    write_cron();
 
     while ( 1 );
+}
+
+inline void increase_cron_unit()
+{
+	switch ( edit_mode )
+	{
+		case EDIT_HOURS:
+			cron.hours++;
+			if ( cron.hours == 24 )
+				cron.hours = 0;
+			break;
+		case EDIT_MINUTES:
+			cron.minutes++;
+			if ( cron.minutes == 60 )
+				cron.minutes = 0;
+			break;
+		case EDIT_SECONDS:
+			cron.seconds++;
+			if ( cron.seconds == 60 )
+				cron.seconds = 0;
+			break;
+	}
+}
+
+inline void decrease_cron_unit()
+{
+	switch ( edit_mode )
+	{
+		case EDIT_HOURS:
+			cron.hours--;
+			if ( cron.hours < 0 )
+				cron.hours = 0;
+			break;
+		case EDIT_MINUTES:
+			cron.minutes--;
+			if ( cron.minutes < 0 )
+				cron.minutes = 0;
+			break;
+		case EDIT_SECONDS:
+			cron.seconds--;
+			if ( cron.seconds < 0 )
+				cron.seconds = 0;
+			break;
+	}
 }
 
 #pragma vector = PORT2_VECTOR
 __interrupt void on_button_interruption(void)
 {
-    halJoystick_setInterruptions((JOYSTICK_UP | JOYSTICK_DOWN), OFF);
+    halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
 
     switch ( P2IFG )
     {
+    	case JOYSTICK_RIGHT:
+    		edit_mode++;
+    		if ( edit_mode == EDIT_SECONDS )
+    		{
+    			edit_mode = OFF;
+    			halLcdPrintLine(lcd_clear, LINE_TUS, OVERWRITE_TEXT);
+    		}
+			break;
+    	case JOYSTICK_LEFT:
+    		edit_mode--;
+    		if ( edit_mode < 0 )
+    		{
+    			edit_mode = OFF;
+    			halLcdPrintLine(lcd_clear, LINE_TUS, OVERWRITE_TEXT);
+    		}
+    		break;
         case JOYSTICK_UP:
             if ( time_base < 10000 )
                 time_base *= 10;
@@ -107,16 +200,24 @@ __interrupt void on_button_interruption(void)
             if ( time_base > 1 )
                 time_base /= 10;
             break;
+        case JOYSTICK_CENTER:
+        	stop_cron = ~stop_cron;
+        	break;
+        case BUTTON_S1:
+        	increase_cron_unit();
+        	break;
+        case BUTTON_S2:
+        	decrease_cron_unit();
+        	break;
     }
 
-    sprintf(lcd_line, " SEC: %05u", time_multiplier * time_base);
-    halLcdPrintLine(lcd_line, 1, OVERWRITE_TEXT);
+    write_time_base();
 
     halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time_multiplier * time_base);
 
     P2IFG = 0;
 
-    halJoystick_setInterruptions((JOYSTICK_UP | JOYSTICK_DOWN), ON);
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON);
 }
 
 #pragma vector = TIMER_A1_CCR0_VECTOR // TIMER1_A0_VECTOR
@@ -124,22 +225,71 @@ __interrupt void update_cron()
 {
 	halTimer_a1_disableInterruptCCR0();
 
-    cron.seconds++;
-
-	if ( cron.seconds == 60 )
+	// Update the chronometer
 	{
-		cron.seconds = 0;
-		cron.minutes++;
+		if ( !stop_cron )
+		{
+			cron.seconds++;
+
+			if ( cron.seconds == 60 )
+			{
+				cron.seconds = 0;
+				cron.minutes++;
+			}
+
+			if ( cron.minutes == 60 )
+			{
+				cron.minutes = 0;
+				cron.hours++;
+			}
+
+			if ( cron.hours == 24 )
+				cron.hours = 0;
+
+			write_cron();
+		}
 	}
 
-	if ( cron.minutes == 60 )
+	// Update alarm! ACHTUNG!
 	{
-		cron.minutes = 0;
-		cron.hours++;
+		if ( !disabled_alarm && cron.seconds == alarm.seconds && cron.minutes == alarm.minutes && cron.hours == alarm.hours )
+		{
+			halLcdPrintLine("ALARM ALARM ALARM", LINE_ALARM, OVERWRITE_TEXT);
+			disabled_alarm = -1;
+		}
 	}
 
-	sprintf(lcd_line, " T: %02d %02d %02d", cron.hours, cron.minutes, cron.seconds);
-	halLcdPrintLine(lcd_line, 6, OVERWRITE_TEXT);
+	// Update time unit editor selector
+	{
+		if ( edit_mode != OFF && !emit_edit_mode )
+			halLcdPrintLine(lcd_clear, LINE_TUS, OVERWRITE_TEXT);
+
+		if ( edit_mode != OFF && emit_edit_mode )
+		{
+			switch ( edit_mode )
+			{
+				case EDIT_HOURS:
+					sprintf(lcd_line, "%2c", "HH");
+					tag_column = 1;
+					break;
+				case EDIT_MINUTES:
+					sprintf(lcd_line, "%2c", "MM");
+					tag_column = 4;
+					break;
+				case EDIT_SECONDS:
+					sprintf(lcd_line, "%2c", "SS");
+					tag_column = 7;
+					break;
+			}
+
+			// | 00:00:00
+			// | HH MM SS
+			//  012345678
+			halLcdPrintLineCol(lcd_line, LINE_TUS, tag_column, OVERWRITE_TEXT);
+		}
+
+		emit_edit_mode = ~emit_edit_mode;
+	}
 
     halTimer_a1_enableInterruptCCR0();
 }
