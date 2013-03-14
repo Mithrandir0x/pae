@@ -13,12 +13,11 @@ char lcd_clear[]  = "                 ";
 unsigned char lcd_contrast  = 0x64;
 unsigned char lcd_backlight = 30;
 
-unsigned char bitled;
-unsigned char update_time = 0;
-unsigned char update_leds = 0;
-unsigned int time = 1;
-unsigned int timer_multiplier = 1000;
-unsigned int old_timer_multiplier = 0;
+unsigned char bitled = LED_R1;
+
+unsigned int time_multiplier = 1;
+unsigned int time_base = 1000;
+unsigned int old_time_base = 0;
 
 typedef struct {
     int hours;
@@ -26,6 +25,7 @@ typedef struct {
     int seconds;
 } TIME;
 TIME cron;
+TIME alarm;
 
 void initialize_leds()
 {
@@ -52,41 +52,41 @@ void initialize_buttons()
     halJoystick_setInterruptions(JOYSTICK_UP | JOYSTICK_DOWN, ON);
 }
 
-void initialize_timerb()
+void initialize_timer_b()
 {
     halTimer_b_initialize(TIMER_CLKSRC_ACLK, TIMER_MODE_UP);
-    halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time * timer_multiplier);
-    halTimer_b_setCCRTimedInterruption(TIMER_CCR1, 1000);
-   // halTimer_b_setInterruptions(ON);
-    halTimer_b_setCCRInterruption(TIMER_CCR0, ON);
-    halTimer_b_setCCRInterruption(TIMER_CCR1, ON);
+    halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time_multiplier * time_base);
+    halTimer_b_enableInterruptCCR0();
 }
 
-int get_year()
+void initialize_timer_a1()
 {
-    return ( RTCYEARL | ( RTCYEARH << 8 ) );
+    halTimer_a1_initialize(TIMER_CLKSRC_ACLK, TIMER_MODE_UP);
+    halTimer_a1_setCCRTimedInterruption(TIMER_CCR0, 1000);
+    halTimer_a1_enableInterruptCCR0();
 }
 
 void main()
 {
-    cron.seconds = 0;
-    cron.minutes = 0;
-    cron.hours = 0;
-
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
 
     _disable_interrupt();
 
+    alarm.seconds = 0;
+	alarm.minutes = 0;
+	alarm.hours = 0;
+
     initialize_leds();
     initialize_lcd();
     initialize_buttons();
-    initialize_timerb();
+    initialize_timer_b();
+    initialize_timer_a1();
 
     _enable_interrupt();
 
     halLcdPrintLine(lcd_line, 0, OVERWRITE_TEXT);
 
-    sprintf(lcd_line, " MUL: %05u", timer_multiplier);
+    sprintf(lcd_line, " MUL: %05u", time_base);
     halLcdPrintLine(lcd_line, 1, OVERWRITE_TEXT);
 
     while ( 1 );
@@ -100,29 +100,54 @@ __interrupt void on_button_interruption(void)
     switch ( P2IFG )
     {
         case JOYSTICK_UP:
-            if ( timer_multiplier < 10000 )
-                timer_multiplier *= 10;
+            if ( time_base < 10000 )
+                time_base *= 10;
             break;
         case JOYSTICK_DOWN:
-            if ( timer_multiplier > 1 )
-                timer_multiplier /= 10;
+            if ( time_base > 1 )
+                time_base /= 10;
             break;
     }
 
-    sprintf(lcd_line, " SEC: %05u", time * timer_multiplier);
+    sprintf(lcd_line, " SEC: %05u", time_multiplier * time_base);
     halLcdPrintLine(lcd_line, 1, OVERWRITE_TEXT);
 
-    halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time * timer_multiplier);
+    halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time_multiplier * time_base);
 
     P2IFG = 0;
 
     halJoystick_setInterruptions((JOYSTICK_UP | JOYSTICK_DOWN), ON);
 }
 
-#pragma vector = TIMERB0_VECTOR
-__interrupt void on_timer_b_interruption()
+#pragma vector = TIMER_A1_CCR0_VECTOR // TIMER1_A0_VECTOR
+__interrupt void update_cron()
 {
-    halTimer_b_setCCRInterruption(TIMER_CCR0, OFF);
+	halTimer_a1_disableInterruptCCR0();
+
+    cron.seconds++;
+
+	if ( cron.seconds == 60 )
+	{
+		cron.seconds = 0;
+		cron.minutes++;
+	}
+
+	if ( cron.minutes == 60 )
+	{
+		cron.minutes = 0;
+		cron.hours++;
+	}
+
+	sprintf(lcd_line, " T: %02d %02d %02d", cron.hours, cron.minutes, cron.seconds);
+	halLcdPrintLine(lcd_line, 6, OVERWRITE_TEXT);
+
+    halTimer_a1_enableInterruptCCR0();
+}
+
+#pragma vector = TIMERB0_VECTOR
+__interrupt void update_leds()
+{
+	halTimer_b_disableInterruptCCR0();
 
     halLed_sx_toggleLed(LED_SX_ALL);
 
@@ -134,34 +159,5 @@ __interrupt void on_timer_b_interruption()
     else
         bitled <<= 1;
 
-    halTimer_b_setCCRInterruption(TIMER_CCR0, ON);
-}
-
-#pragma vector = TIMERB1_VECTOR
-__interrupt void update_hour()
-{
-    halTimer_b_setCCRInterruption(TIMER_CCR1, OFF);
-
-    //if ( TB0IV == TIMER_CCR1 )
-    if ( ( TB0CCR1 & TIMER_CCR_CCIFG ) != 0 )
-    {
-        cron.seconds++;
-
-        if ( cron.seconds == 60 )
-        {
-            cron.seconds = 0;
-            cron.minutes++;
-        }
-
-        if ( cron.minutes == 60 )
-        {
-            cron.minutes = 0;
-            cron.hours++;
-        }
-
-        sprintf(lcd_line, " T: %02d %02d %02d", cron.hours, cron.minutes, cron.seconds);
-        halLcdPrintLine(lcd_line, 6, OVERWRITE_TEXT);
-    }
-
-    halTimer_b_setCCRInterruption(TIMER_CCR1, ON);
+    halTimer_b_enableInterruptCCR0();
 }

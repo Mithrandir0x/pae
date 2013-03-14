@@ -30,27 +30,47 @@
 #define TIMER_CCR5    10 // 1010
 #define TIMER_CCR6    12 // 1100
 
-#define TBCNTL BIT12 | BIT11
-#define TBSSEL BIT9 | BIT8
-#define MC     BIT5 | BIT4
-#ifndef TBCLR
-#define TBCLR  BIT2
-#endif
-#ifndef TBIE
-#define TBIE   BIT1
-#endif
-#ifndef CCIFG
-#define CCIFG BIT0
-#endif
-#define TIMER_CCR_CCIE  BIT4
+#define TIMER_A1_CCR0_VECTOR TIMER1_A0_VECTOR
+#define TIMER_A1_CCRX_VECTOR TIMER1_A1_VECTOR
+
 #define TIMER_CCR_CCIFG BIT1
 
+#define TX_CTL_TXSSEL BIT9 | BIT8
+
+void halTimer_a1_initialize(int source, int mode);
+//void halTimer_a1_setClockSource(int source);
+//void halTimer_a1_setMode(int mode);
+//void halTimer_a1_setInterruptions(int boolean);
+//void halTimer_a1_setCCRInterruption(int ccr, int boolean);
+void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time);
+//void halTimer_a1_clear();
+
 void halTimer_b_initialize(int source, int mode);
-void halTimer_b_setClockSource(int source);
-void halTimer_b_setMode(int mode);
-void halTimer_b_setInterruptions(int boolean);
-void halTimer_b_setCCRInterruption(int ccr, int boolean);
+//void halTimer_b_setClockSource(int source);
+//void halTimer_b_setMode(int mode);
+//void halTimer_b_setInterruptions(int boolean);
+//void halTimer_b_setCCRInterruption(int ccr, int boolean);
 void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time);
-void halTimer_b_clear();
+//void halTimer_b_clear();
+
+inline void halTimer_b_disableInterruptCCR0()
+{
+	TB0CCTL0 &= ~( BIT9 | BIT8 );
+}
+
+inline void halTimer_b_enableInterruptCCR0()
+{
+	TB0CCTL0 |= ( BIT9 | BIT8 );
+}
+
+inline void halTimer_a1_disableInterruptCCR0()
+{
+	TB0CCTL0 &= ~( BIT9 | BIT8 );
+}
+
+inline void halTimer_a1_enableInterruptCCR0()
+{
+	TB0CCTL0 |= ( BIT9 | BIT8 );
+}
 
 #endif
