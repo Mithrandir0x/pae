@@ -92,8 +92,8 @@ void write_time_base()
 
 void write_cron()
 {
-	sprintf(lcd_line, " %02d:%02d:%02d", cron.hours, cron.minutes, cron.seconds);
-	halLcdPrintLine(lcd_line, LINE_CRON, OVERWRITE_TEXT);
+    sprintf(lcd_line, " %02d:%02d:%02d", cron.hours, cron.minutes, cron.seconds);
+    halLcdPrintLine(lcd_line, LINE_CRON, OVERWRITE_TEXT);
 }
 
 void main()
@@ -107,8 +107,8 @@ void main()
     cron.hours = 0;
 
     alarm.seconds = 30;
-	alarm.minutes = 2;
-	alarm.hours = 0;
+    alarm.minutes = 2;
+    alarm.hours = 0;
 
     initialize_leds();
     initialize_lcd();
@@ -128,74 +128,71 @@ void main()
 
 inline void increase_cron_unit()
 {
-	switch ( edit_mode )
-	{
-		case EDIT_SECONDS:
-			cron.seconds++;
-			if ( cron.seconds == 60 )
-				cron.seconds = 0;
-			else
-				break;
-		case EDIT_MINUTES:
-			cron.minutes++;
-			if ( cron.minutes == 60 )
-				cron.minutes = 0;
-			else
-				break;
-		case EDIT_HOURS:
-			cron.hours++;
-			if ( cron.hours == 24 )
-				cron.hours = 0;
-			break;
-	}
+    switch ( edit_mode )
+    {
+        case EDIT_SECONDS:
+            cron.seconds++;
+            if ( cron.seconds == 60 )
+                cron.seconds = 0;
+            else
+                break;
+        case EDIT_MINUTES:
+            cron.minutes++;
+            if ( cron.minutes == 60 )
+                cron.minutes = 0;
+            else
+                break;
+        case EDIT_HOURS:
+            cron.hours++;
+            if ( cron.hours == 24 )
+                cron.hours = 0;
+            break;
+    }
 }
 
 inline void decrease_cron_unit()
 {
-	switch ( edit_mode )
-	{
-		case EDIT_HOURS:
-			cron.hours--;
-			if ( cron.hours < 0 )
-				cron.hours = 0;
-			break;
-		case EDIT_MINUTES:
-			cron.minutes--;
-			if ( cron.minutes < 0 )
-				cron.minutes = 0;
-			break;
-		case EDIT_SECONDS:
-			cron.seconds--;
-			if ( cron.seconds < 0 )
-				cron.seconds = 0;
-			break;
-	}
+    switch ( edit_mode )
+    {
+        case EDIT_HOURS:
+            if ( cron.hours > 0 )
+                cron.hours--;
+            break;
+        case EDIT_MINUTES:
+            if ( cron.minutes > 0 )
+                cron.minutes--;
+            break;
+        case EDIT_SECONDS:
+            if ( cron.seconds > 0 )
+                cron.seconds--;
+            break;
+    }
 }
 
 #pragma vector = PORT2_VECTOR
 __interrupt void on_button_interruption(void)
 {
-	halButtons_setInterruptions(BUTTON_ALL, OFF);
+    halButtons_setInterruptions(BUTTON_ALL, OFF);
     halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
 
     switch ( P2IFG )
     {
-    	case JOYSTICK_RIGHT:
-    		edit_mode++;
-    		if ( edit_mode > EDIT_SECONDS )
-    		{
-    			edit_mode = OFF;
-    			halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
-    		}
-			break;
-    	case JOYSTICK_LEFT:
-    		if ( edit_mode > 0 )
-    		{
-    			edit_mode--;
-    			if ( edit_mode == OFF )
-    				halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
-    		}
-    		break;
+        case JOYSTICK_RIGHT:
+            edit_mode++;
+            if ( edit_mode > EDIT_SECONDS )
+            {
+                edit_mode = OFF;
+                halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
+            }
+            break;
+        case JOYSTICK_LEFT:
+            if ( edit_mode > 0 )
+            {
+                edit_mode--;
+                if ( edit_mode == OFF )
+                    halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
+            }
+            break;
         case JOYSTICK_UP:
             if ( time_base < 10000 )
                 time_base *= 10;
@@ -205,14 +202,14 @@ __interrupt void on_button_interruption(void)
                 time_base /= 10;
             break;
         case JOYSTICK_CENTER:
-        	stop_cron = ~stop_cron;
-        	break;
+            stop_cron = ~stop_cron;
+            break;
         case BUTTON_S1:
-        	increase_cron_unit();
-        	break;
+            increase_cron_unit();
+            break;
         case BUTTON_S2:
-        	decrease_cron_unit();
-        	break;
+            decrease_cron_unit();
+            break;
     }
 
     write_time_base();
@@ -228,71 +225,71 @@ __interrupt void on_button_interruption(void)
 #pragma vector = TIMER_A1_CCR0_VECTOR // TIMER1_A0_VECTOR
 __interrupt void update_cron()
 {
-	halTimer_a1_disableInterruptCCR0();
+    halTimer_a1_disableInterruptCCR0();
 
-	// Update the chronometer
-	{
-		if ( !stop_cron )
-		{
-			cron.seconds++;
+    // Update the chronometer
+    {
+        if ( !stop_cron )
+        {
+            cron.seconds++;
 
-			if ( cron.seconds == 60 )
-			{
-				cron.seconds = 0;
-				cron.minutes++;
-			}
+            if ( cron.seconds == 60 )
+            {
+                cron.seconds = 0;
+                cron.minutes++;
+            }
 
-			if ( cron.minutes == 60 )
-			{
-				cron.minutes = 0;
-				cron.hours++;
-			}
+            if ( cron.minutes == 60 )
+            {
+                cron.minutes = 0;
+                cron.hours++;
+            }
 
-			if ( cron.hours == 24 )
-				cron.hours = 0;
+            if ( cron.hours == 24 )
+                cron.hours = 0;
 
-			write_cron();
-		}
-	}
+            write_cron();
+        }
+    }
 
-	// Update alarm! ACHTUNG!
-	{
-		if ( !disabled_alarm && cron.seconds == alarm.seconds
-				&& cron.minutes == alarm.minutes && cron.hours == alarm.hours )
-		{
-			halLcdPrintLine("ALARM ALARM ALARM", LINE_ALARM, OVERWRITE_TEXT);
-			disabled_alarm = -1;
-		}
-	}
+    // Update alarm! ACHTUNG!
+    {
+        if ( !disabled_alarm && cron.seconds == alarm.seconds
+                && cron.minutes == alarm.minutes && cron.hours == alarm.hours )
+        {
+            halLcdPrintLine("ALARM ALARM ALARM", LINE_ALARM, OVERWRITE_TEXT);
+            disabled_alarm = -1;
+        }
+    }
 
-	// Update time unit editor selector
-	{
-		if ( edit_mode != old_edit_mode )
-		{
-			switch ( edit_mode )
-			{
-				case EDIT_HOURS:
-					sprintf(lcd_line, "%2c", "HH");
-					tag_column = 1;
-					break;
-				case EDIT_MINUTES:
-					sprintf(lcd_line, "%2c", "MM");
-					tag_column = 4;
-					break;
-				case EDIT_SECONDS:
-					sprintf(lcd_line, "%2c", "SS");
-					tag_column = 7;
-					break;
-			}
+    // Update time unit editor selector
+    {
+        if ( edit_mode != old_edit_mode )
+        {
+            switch ( edit_mode )
+            {
+                case EDIT_HOURS:
+                    sprintf(lcd_line, "%2c", "HH");
+                    tag_column = 1;
+                    break;
+                case EDIT_MINUTES:
+                    sprintf(lcd_line, "%2c", "MM");
+                    tag_column = 4;
+                    break;
+                case EDIT_SECONDS:
+                    sprintf(lcd_line, "%2c", "SS");
+                    tag_column = 7;
+                    break;
+            }
 
-			// | 00:00:00
-			// | HH MM SS
-			//   1  4  7
-			halLcdPrintLineCol(lcd_line, LINE_TIME_UNIT_SEL, tag_column, OVERWRITE_TEXT);
-		}
+            // | 00:00:00
+            // | HH MM SS
+            //   1  4  7
+            halLcdPrintLineCol(lcd_line, LINE_TIME_UNIT_SEL, tag_column, OVERWRITE_TEXT);
+        }
 
-		old_edit_mode = edit_mode;
-	}
+        old_edit_mode = edit_mode;
+    }
 
     halTimer_a1_enableInterruptCCR0();
 }
@@ -300,7 +297,7 @@ __interrupt void update_cron()
 #pragma vector = TIMERB0_VECTOR
 __interrupt void update_leds()
 {
-	halTimer_b_disableInterruptCCR0();
+    halTimer_b_disableInterruptCCR0();
 
     halLed_sx_toggleLed(LED_SX_ALL);
 

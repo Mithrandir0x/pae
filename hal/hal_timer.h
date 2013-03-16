@@ -35,7 +35,7 @@
 
 #define TIMER_CCR_CCIFG BIT1
 
-#define TX_CTL_TXSSEL BIT9 | BIT8
+#define TX_CTL_TXSSEL ( BIT9 | BIT8 )
 
 void halTimer_a1_initialize(int source, int mode);
 //void halTimer_a1_setClockSource(int source);
