@@ -33,10 +33,6 @@
 #define TIMER_A1_CCR0_VECTOR TIMER1_A0_VECTOR
 #define TIMER_A1_CCRX_VECTOR TIMER1_A1_VECTOR
 
-#define TIMER_CCR_CCIFG BIT1
-
-#define TX_CTL_TXSSEL ( BIT9 | BIT8 )
-
 void halTimer_a1_initialize(int source, int mode);
 //void halTimer_a1_setClockSource(int source);
 //void halTimer_a1_setMode(int mode);

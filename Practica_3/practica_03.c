@@ -180,22 +180,12 @@ __interrupt void on_button_interruption(void)
         case JOYSTICK_RIGHT:
             edit_mode++;
             if ( edit_mode > EDIT_SECONDS )
-            {
                 edit_mode = OFF;
-                halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
-            }
             break;
         case JOYSTICK_LEFT:
-            if ( edit_mode > 0 )
-            {
-                edit_mode--;
-                if ( edit_mode == OFF )
-                    halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
-            }
-            else
-            {
+            edit_mode--;
+            if ( edit_mode < 0 )
             	edit_mode = EDIT_SECONDS;
-            }
             break;
         case JOYSTICK_UP:
             if ( time_base < 10000 )
@@ -289,6 +279,7 @@ __interrupt void update_cron()
             // | 00:00:00
             // | HH MM SS
             //   1  4  7
+            halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
             halLcdPrintLineCol(lcd_line, LINE_TIME_UNIT_SEL, tag_column, OVERWRITE_TEXT);
         }
 

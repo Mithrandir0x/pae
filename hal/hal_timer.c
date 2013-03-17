@@ -13,10 +13,13 @@
 #define ACLK_TICKS_PER_SECOND 32 // floor(32768 Hz / 1000 ms)
 #define SMCLK_TICK_PER_SECOND 1000 // 10 ** 6 Hz / 10 ** 3 ms
 
+#define TX_CTL_TXSSEL ( BIT9 | BIT8 )
 #define TX_CTL_MC     BIT5 | BIT4
 #define TX_CCTL_CCIE  BIT4
 
 #define TB_CTL_CNTL BIT12 | BIT11
+
+#define TIMER_CCR_CCIFG BIT1
 
 #ifndef TBCLR
 #define TBCLR  BIT2
