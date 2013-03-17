@@ -192,6 +192,10 @@ __interrupt void on_button_interruption(void)
                 if ( edit_mode == OFF )
                     halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
             }
+            else
+            {
+            	edit_mode = EDIT_SECONDS;
+            }
             break;
         case JOYSTICK_UP:
             if ( time_base < 10000 )
