@@ -30,7 +30,6 @@ int stop_cron = 0;
 
 int edit_mode = OFF;
 int old_edit_mode = OFF;
-unsigned int tag_column = 0;
 
 unsigned int time_multiplier = 1;
 unsigned int time_base = 1000;
@@ -200,13 +199,34 @@ __interrupt void on_button_interruption(void)
             break;
         case BUTTON_S1:
             increase_cron_unit();
+            halLcdPrintLine(lcd_clear, LINE_CRON, OVERWRITE_TEXT);
+            write_cron();
             break;
         case BUTTON_S2:
             decrease_cron_unit();
+            halLcdPrintLine(lcd_clear, LINE_CRON, OVERWRITE_TEXT);
+            write_cron();
             break;
     }
 
     write_time_base();
+
+    halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
+    if ( edit_mode != OFF )
+    {
+        switch ( edit_mode )
+        {
+            case EDIT_HOURS:
+                halLcdPrintLineCol("HH", LINE_TIME_UNIT_SEL, 1, OVERWRITE_TEXT);
+                break;
+            case EDIT_MINUTES:
+                halLcdPrintLineCol("MM", LINE_TIME_UNIT_SEL, 4, OVERWRITE_TEXT);
+                break;
+            case EDIT_SECONDS:
+                halLcdPrintLineCol("SS", LINE_TIME_UNIT_SEL, 7, OVERWRITE_TEXT);
+                break;
+        }
+    }
 
     halTimer_b_setCCRTimedInterruption(TIMER_CCR0, time_multiplier * time_base);
 
@@ -216,7 +236,7 @@ __interrupt void on_button_interruption(void)
     halJoystick_setInterruptions(JOYSTICK_ALL, ON);
 }
 
-#pragma vector = TIMER_A1_CCR0_VECTOR // TIMER1_A0_VECTOR
+#pragma vector = TIMER1_A0_VECTOR // TIMER1_A0_VECTOR
 __interrupt void update_cron()
 {
     halTimer_a1_disableInterruptCCR0();
@@ -254,36 +274,6 @@ __interrupt void update_cron()
             halLcdPrintLine("ALARM ALARM ALARM", LINE_ALARM, OVERWRITE_TEXT);
             disabled_alarm = -1;
         }
-    }
-
-    // Update time unit editor selector
-    {
-        if ( edit_mode != old_edit_mode )
-        {
-            switch ( edit_mode )
-            {
-                case EDIT_HOURS:
-                    sprintf(lcd_line, "%2c", "HH");
-                    tag_column = 1;
-                    break;
-                case EDIT_MINUTES:
-                    sprintf(lcd_line, "%2c", "MM");
-                    tag_column = 4;
-                    break;
-                case EDIT_SECONDS:
-                    sprintf(lcd_line, "%2c", "SS");
-                    tag_column = 7;
-                    break;
-            }
-
-            // | 00:00:00
-            // | HH MM SS
-            //   1  4  7
-            halLcdPrintLine(lcd_clear, LINE_TIME_UNIT_SEL, OVERWRITE_TEXT);
-            halLcdPrintLineCol(lcd_line, LINE_TIME_UNIT_SEL, tag_column, OVERWRITE_TEXT);
-        }
-
-        old_edit_mode = edit_mode;
     }
 
     halTimer_a1_enableInterruptCCR0();

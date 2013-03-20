@@ -51,22 +51,22 @@ void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time);
 
 inline void halTimer_b_disableInterruptCCR0()
 {
-	TB0CCTL0 &= ~( BIT9 | BIT8 );
+	TB0CCTL0 &= ~BIT4;
 }
 
 inline void halTimer_b_enableInterruptCCR0()
 {
-	TB0CCTL0 |= ( BIT9 | BIT8 );
+	TB0CCTL0 |= BIT4;
 }
 
 inline void halTimer_a1_disableInterruptCCR0()
 {
-	TB0CCTL0 &= ~( BIT9 | BIT8 );
+	TA1CCTL0 &= ~BIT4;
 }
 
 inline void halTimer_a1_enableInterruptCCR0()
 {
-	TB0CCTL0 |= ( BIT9 | BIT8 );
+	TA1CCTL0 |= BIT4;
 }
 
 #endif
