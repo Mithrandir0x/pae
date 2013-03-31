@@ -1,0 +1,256 @@
+/*
+ * @file hal_bio_ax12.c
+ */
+
+// http://support.robotis.com/en/product/dynamixel/ax_series/dxl_ax_actuator.htm
+
+#include <msp430x54xa.h>
+#include "hal_common.h"
+#include "hal_bio_ax12.h"
+
+#define TXD0_READY -1 // FIXME Find the F5438 register that checks TX readiness
+
+#define ERROR -1
+
+#define INS_NONE       0x00
+#define INS_PING       0x01
+#define INS_READ_DATA  0x02
+#define INS_WRITE_DATA 0x03
+#define INS_REG_WRITE  0x04
+#define INS_ACTION     0x05
+#define INS_SYNC_WRITE 0x83
+
+// ERROR MASKS
+#define ERR_INST     BIT6
+#define ERR_OVERLOAD BIT5
+#define ERR_CHECKSUM BIT4
+#define ERR_RANGE    BIT3
+#define ERR_OVERHEAT BIT2
+#define ERR_ANG_LIM  BIT1
+#define ERR_IN_VOLT  BIT0
+
+// EEPROM AREA
+#define MEM_MODEL_L       00 // Model Number (Low)
+#define MEM_MODEL_H       01 // Model Number (High)
+#define MEM_VFIRM         02 // Firmware Version
+#define MEM_ID            03 // Actuator Identifier
+#define MEM_BAUD_RATE     04 // Baud Rate
+#define MEM_RDT           05 // Return Delay Time
+#define MEM_CW_ANG_LIM_L  06 // Clockwise Angle Limit (Low)
+#define MEM_CW_ANG_LIM_H  07 // Clockwise Angle Limit (High)
+#define MEM_CCW_ANG_LIM_L 08 // Counter-Clockwise Angle Limit (Low)
+#define MEM_CCW_ANG_LIM_H 09 // Counter-Clockwise Angle Limit (High)
+#define MEM_TEMP_HIGH_LIM 11 // Highest Limit Temperature
+#define MEM_TEMP_LOW_LIM  12 // Lowest Limit Temperature
+#define MEM_VOLT_HIGH_LIM 13 // Highest Limit Voltage
+#define MEM_MAX_TORQUE_L  14 // Max Torque (Low)
+#define MEM_MAX_TORQUE_H  15 // Max Torque (High)
+#define MEM_SRL           16 // Status Return Level
+#define MEM_ALARM_LED     17 // Alarm LED
+#define MEM_ALARM_SHTDWN  18 // Alarm Shutdown
+#define MEM_DOWN_CALIB_L  20 // Down Calibration (Low)
+#define MEM_DOWN_CALIB_H  21 // Down Calibration (High)
+#define MEM_UP_CALIB_L    22 // Up Calibration (Low)
+#define MEM_UP_CALIB_H    23 // Up Calibration (High)
+
+// RAM AREA
+#define MEM_TORQUE        24 // Torque Enable
+#define MEM_LED           25 // LED
+#define MEM_CW_CMP_MARGN  26 // Clockwise Compliance Margin
+#define MEM_CCW_CMP_MARGN 27 // Counter-Clockwise Compliance Margin
+#define MEM_CW_CMP_SLOPE  28 // Clockwise Compliance Slope
+#define MEM_CCW_CMP_SLOPE 29 // Counter-Clockwise Compliance Slope
+#define MEM_GOAL_POS_L    30 // Goal Position (Low)
+#define MEM_GOAL_POS_H    31 // Goal Position (High)
+#define MEM_MOV_SPEED_L   32 // Moving Speed (Low)
+#define MEM_MOV_SPEED_H   33 // Moving Speed (High)
+#define MEM_TORQUE_LIM_L  34 // Torque Limit (Low)
+#define MEM_TORQUE_LIM_H  35 // Torque Limit (High)
+#define MEM_PRES_POS_L    36 // Present Position (Low)
+#define MEM_PRES_POS_H    37 // Present Position (High)
+#define MEM_PRES_SPEED_L  38 // Present Speed (Low)
+#define MEM_PRES_SPEED_H  39 // Present Speed (High)
+#define MEM_PRES_LOAD_L   40 // Present Load (Low)
+#define MEM_PRES_LOAD_H   41 // Present Load (High)
+#define MEM_PRES_VOLT     42 // Present Voltage
+#define MEM_PRES_TEMP     43 // Present Temperature
+#define MEM_REG_INST      44 // Registered Instruction
+#define MEM_MOVING        46 // Moving
+#define MEM_LOCK          47 // Lock
+#define MEM_PUNCH_L       48 // Punch (Low)
+#define MEM_PUNCH_H       49 // Punch (High)
+
+volatile byte tx[TRX_BUFFER_SIZE];
+volatile byte rx[TRX_BUFFER_SIZE];
+
+volatile byte instruction = 0;
+volatile byte parameter_length = 0;
+
+volatile int wait_until_response = FALSE;
+
+/**
+ * Calculates the checksum for the current state of the transmit buffer.
+ *
+ * @return The checksum of the transmit buffer packet.
+ */
+byte checksum()
+{
+    int i = 2;
+    int n = 3 + parameter_length; // ID + LENGTH + INSTRUCTION + PARAM_1 + ··· + PARAM_N
+    byte checksum = 0;
+
+    for ( ; i < n ; i++ )
+    {
+        checksum += tx[i];
+    }
+
+    return ~checksum;
+}
+
+/**
+ * Push the byte to the USCI UART transmit buffer.
+ *
+ * @param b The byte to be pushed.
+ */
+void sendbyte(byte b)
+{
+    while ( !TXD0_READY ); // Wait for transmit buffer to be ready
+    UCA0TXBUF = b;  // Fill the transmit buffer
+}
+
+/**
+ * This function is in charge of sending the transmit buffer to the
+ * actuator selected by its ID.
+ *
+ * @param id Identifier of the actuator
+ * @return ERROR if something has gone awry, otherwise, GOOD.
+ */
+int transmit(byte id)
+{
+    int i = 0;
+    int packet_size = 6 + parameter_length;
+
+    P3OUT |= BIT7; // Set P3.7 as TRANSMIT
+
+    tx[0] = 0xFF;                 // Incoming packet Header
+    tx[1] = 0xFF;                 // Incoming packet Header
+    tx[2] = id;                   // AX12 Actuator Identifier
+    tx[3] = parameter_length + 2; // Length of the packet to be sent
+    tx[4] = instruction;          // ID of the instruction to execute
+    tx[packet_size - 1] = checksum(); // Checksum
+
+    for ( ; i < packet_size ; i++ )
+    {
+        sendbyte(tx[i]);
+    }
+
+    wait_until_response = TRUE;
+    while ( wait_until_response );
+}
+
+int receive()
+{
+}
+
+/**
+ * Adds a new parameter to the transmit buffer.
+ *
+ * @param parameter The value assigned to the parameter array.
+ * @return The index of the new parameter added, or ERROR if something has gone awry.
+ */
+int addParameter(byte parameter)
+{
+    int i = 5 + parameter_length;    // Get the index of the most new parameter to be added
+    if ( i < TRX_BUFFER_SIZE - 1 )   // Check if the buffer allows anymore parameters
+    {
+        tx[i] = parameter;           // If so, set the parameter
+        return ++parameter_length;   // and return the index of such parameter.
+    }
+
+    return ERROR;
+}
+
+/**
+ * Resets the transmit buffer.
+ */
+void clearInstruction()
+{
+    int i = 5;
+
+    tx[3] = 0;        // Set parameter length byte in buffer to 0
+    tx[4] = INS_NONE; // Set instruction byte in buffer to None
+    for ( ; i < TRX_BUFFER_SIZE ; i++ )
+    {
+        tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
+    }
+
+    parameter_length = 0;
+}
+
+/**
+ * Internal method to set the instruction of the transmit buffer.
+ *
+ * @param inst Instruction to be set.
+ */
+inline void setInstruction(byte inst)
+{
+    instruction = inst;
+}
+
+/**
+ * Sets USCI to UART mode, and configures required registers
+ * to allow communication with AX12 actuators.
+ *
+ * It uses Subsystem Master Clock (SMCLK) as source.
+ */
+void halBioAX12_initialize()
+{
+    UCA0CTL1 |= UCSWRST; // Enable Software reset. USCI logic held in reset state
+
+    UCA0CTL0 = 0; // Disable parity  // AX-12 Requirement
+                  // Set odd parity
+                  // LSB First
+                  // 8-bit data      // AX-12 Requirement
+                  // One stop bit    // AX-12 Requirement
+                  // UART Mode (UCSMODEx = 0)
+                  // Obviously, asynchronous mode // AX-12 Requirement
+    UCA0CTL1 |= UCSSEL__SMCLK; // Set USCI Clock source (BRCLK) from SMCLK
+    UCA0BRW = 1; // Sets baud rate prescaler to 1
+    UCA0MCTL = UCOS16; // Enable oversampling mode, but do not select any kind of modulation.
+
+    // Up to here, the BRCLK is SMCLK/16.
+
+    P3SEL |= 0x30; // Port lines P3.4 and P3.5 selected as default I/O function
+        // P3.4 = UART0TX
+        // P3.5 = UART0RX
+
+    P3REN |= 0x30; // Enable "Pull-Up/Pull-Down" resistor for P3.4 and P3.5
+    P3OUT |= 0x30; // Set initial state as "Pull-Up"
+
+    // Dynamixel Motors are Half-Duplex, meaning that we can only receive from OR transmit to.
+    // P3.7 is in charge of selecting the data direction.
+    // As Page 8 of Bioloid AX-12 spec states, the DIRECTION_PORT bit is described as:
+    //  HI for transmiting (Tx)
+    //  LO for receiving (Rx)
+    P3DIR |= BIT7; // Set P3.7 as OUTPUT (Used as Tx/Rx Selector (0/1))
+    P3SEL &= ~BIT7; // Set P3.7 as GPIO
+    P3OUT &= ~BIT7; // Set P3.7 initial value to 0 (i.e. the controller is expecting to receive data)
+
+    UCA0CTL1 &= ~UCSWRST; // Disable Software reset.
+    UCA0IE |= UCRXIE; // Enable Receive interruptions
+}
+
+/**
+ * The PING instruction of the AX-12.
+ *
+ * @return ERROR if something has gone awry.
+ */
+int halBioAX12_ping(int id)
+{
+    int res;
+
+    clearInstruction();
+    setInstruction(INS_PING);
+
+    res = transmit(id);
+}

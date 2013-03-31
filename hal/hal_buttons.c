@@ -21,6 +21,12 @@ void halButtons_initialize()
 	P2IES &= ~BUTTON_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
 }
 
+/**
+ * Set the state of button interruptions.
+ *
+ * @param bits Bitmask indicating which buttons to set interruptions.
+ * @param flag Set the state of the interruptions, whether ON or OFF.
+ */
 void halButtons_setInterruptions(int bits, int flag)
 {
     if ( flag == OFF )
@@ -29,6 +35,11 @@ void halButtons_setInterruptions(int bits, int flag)
         P2IE |= ( bits & BUTTON_ALL );
 }
 
+/**
+ * Toggle the state of button interruptions.
+ *
+ * @param bits Bitmask indicating which buttons should be toggled its state.
+ */
 void halButtons_toggleInterruptions(int bits)
 {
     P2IE ^= ( bits & BUTTON_ALL );
@@ -47,6 +58,12 @@ void halJoystick_initialize()
     P2IES &= ~JOYSTICK_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
 }
 
+/**
+ * Set the state of joystick's button interruptions.
+ *
+ * @param bits Bitmask indicating which buttons to set interruptions.
+ * @param flag Set the state of the interruptions, whether ON or OFF.
+ */
 void halJoystick_setInterruptions(int bits, int flag)
 {
     if ( flag == OFF )
@@ -55,6 +72,11 @@ void halJoystick_setInterruptions(int bits, int flag)
         P2IE |= ( bits & JOYSTICK_ALL );
 }
 
+/**
+ * Toggle the state of joystick's button interruptions.
+ *
+ * @param bits Bitmask indicating which buttons should be toggled its state.
+ */
 void halJoystick_toggleInterruptions(int bits)
 {
     P2IE ^= ( bits & JOYSTICK_ALL );

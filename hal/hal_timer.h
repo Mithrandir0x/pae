@@ -4,8 +4,8 @@
 
 // Diapo 17, flag CCIFG TA0CCTL0
 
-#ifndef HAL_TIMER_H_
-#define HAL_TIMER_H_
+#ifndef _HAL_TIMER_H_
+#define _HAL_TIMER_H_
 
 #include <msp430x54xa.h>
 
@@ -15,7 +15,8 @@
 #define TIMER_CNT_8  ( BIT12 | BIT11 ) // 0xFF
 
 #define TIMER_CLKSRC_ACLK  BIT8 // 32768 Hz == 2**15 Hz // Alternative Clock
-#define TIMER_CLKSRC_SMCLK BIT9 // 1 Mhz // Secondary Master Clock
+#define TIMER_CLKSRC_MCLK  ( BIT9 | BIT8 )  // Master Clock
+#define TIMER_CLKSRC_SMCLK BIT9 // 1 Mhz // Subsystem Master Clock
 
 #define TIMER_MODE_STOP       0
 #define TIMER_MODE_UP         BIT4

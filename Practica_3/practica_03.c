@@ -24,12 +24,11 @@ unsigned char lcd_backlight = 30;
 
 unsigned char bitled = LED_R1;
 
-int disabled_alarm = 0;
+int disabled_alarm = FALSE;
 
-int stop_cron = 0;
+int stop_cron = FALSE;
 
 int edit_mode = OFF;
-int old_edit_mode = OFF;
 
 unsigned int time_multiplier = 1;
 unsigned int time_base = 1000;
@@ -272,7 +271,7 @@ __interrupt void update_cron()
                 && cron.minutes == alarm.minutes && cron.hours == alarm.hours )
         {
             halLcdPrintLine("ALARM ALARM ALARM", LINE_ALARM, OVERWRITE_TEXT);
-            disabled_alarm = -1;
+            disabled_alarm = TRUE;
         }
     }
 

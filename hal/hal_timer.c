@@ -6,6 +6,7 @@
 
 #include "hal_common.h"
 #include "hal_timer.h"
+#include "hal_ucs.h"
 
 // For more oscillator information, refer to:
 //   MSP430F5438_Datasheet, Crystal Oscillator XT1, Low-Frequency Mode (page 46)
@@ -13,11 +14,19 @@
 #define ACLK_TICKS_PER_SECOND 32 // floor(32768 Hz / 1000 ms)
 #define SMCLK_TICK_PER_SECOND 1000 // 10 ** 6 Hz / 10 ** 3 ms
 
+#define TIMER_TPS_ACLK_FACTORY  32
+#define TIMER_TPS_MCLK_FACTORY  2000
+#define TIMER_TPS_SMCLK_FACTORY 1000
+
+#define TIMER_TPS_ACLK_16M  32
+#define TIMER_TPS_MCLK_16M  16056
+#define TIMER_TPS_SMCLK_16M 8028
+
 #define TX_CTL_TXSSEL ( BIT9 | BIT8 )
 #define TX_CTL_MC     BIT5 | BIT4
 #define TX_CCTL_CCIE  BIT4
 
-#define TB_CTL_CNTL BIT12 | BIT11
+#define TB_CTL_CNTL ( BIT12 | BIT11 )
 
 #define TIMER_CCR_CCIFG BIT1
 
@@ -32,6 +41,66 @@
 #ifndef CCIFG
 #define CCIFG BIT0
 #endif
+
+/**
+ * Returns the current clock frequency.
+ */
+int calculate_clock_frequency()
+{
+    unsigned int d = 1;
+    unsigned int n = 0;
+    unsigned int clkref = 0;
+    unsigned int clkrefdiv = 1;
+
+    d = ( UCSCTL2 & ( BITE | BITD | BITC ) ) >> 12;
+    n = UCSCTL2 & ~(BITF | BITE | BITD | BITC);
+    clkref = ( UCSCTL3 & ( BIT6 | BIT5 | BIT4 ) ) >> 4;
+    clkrefdiv = UCSCTL3 & 0x7;
+
+    return d * ( n + 1 ) * ( clkref / clkrefdiv );
+}
+
+/**
+ * Calculate the amount of ticks to be counted.
+ */
+int calculate_ticks(int control_register, int time)
+{
+    unsigned int ticks = 0;     // Number to count before issuing an interruption
+    unsigned int tps_aclk = 0;  // Ticks Per milliSecond from ACLK
+    unsigned int tps_smclk = 0; // Ticks Per milliSecond from SMCLK
+
+    // Depending on the frequency mode, we set the proper quantity of
+    // ticks per millisecond from each clock signal the timer can work
+    // with.
+    switch ( halUCS_getFrequencyMode() )
+    {
+        case UCS_MODE_FACTORY:
+            tps_aclk = TIMER_TPS_ACLK_FACTORY;
+            tps_smclk = TIMER_TPS_SMCLK_FACTORY;
+            break;
+        case UCS_MODE_16M:
+            tps_aclk = TIMER_TPS_ACLK_16M;
+            tps_smclk = TIMER_TPS_SMCLK_16M;
+            break;
+        default: // UCS_MODE_CUSTOM
+            // TODO Calculate TPS_XXCLK for UCS Custom Mode
+            break;
+    }
+
+    // Check which clock signal the micro is using, and calculate the
+    // number of ticks required for the amount of time passed by argument.
+    switch ( control_register & TX_CTL_TXSSEL )
+    {
+        case TIMER_CLKSRC_ACLK:
+            ticks = tps_aclk * time;
+            break;
+        case TIMER_CLKSRC_SMCLK:
+            ticks = tps_smclk * time;
+            break;
+    }
+
+    return ticks;
+}
 
 void halTimer_a1_initialize(int source, int mode)
 {
@@ -83,7 +152,7 @@ void halTimer_a1_setInterruptions(int boolean)
  */
 void halTimer_a1_setCCRInterruption(int ccr, int boolean)
 {
-    volatile unsigned int *TA1CCTLX = NULL;
+    WORD_PTR TA1CCTLX = NULL;
 
     switch ( ccr )
     {
@@ -113,20 +182,9 @@ void halTimer_a1_setCCRInterruption(int ccr, int boolean)
  */
 void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time)
 {
-    unsigned int ticks = 0;
+    unsigned int ticks = 0;     // Number to count before issuing an interruption
 
-    // Check which clock are we using, and calculate the
-    // number of ticks required for the amount of time
-    switch ( TA1CTL & TX_CTL_TXSSEL )
-    {
-        case TIMER_CLKSRC_ACLK:
-            ticks = ACLK_TICKS_PER_SECOND * time;
-            break;
-
-        case TIMER_CLKSRC_SMCLK:
-            ticks = SMCLK_TICK_PER_SECOND * time;
-            break;
-    }
+    ticks = calculate_ticks(TA1CTL, time);
 
     // Save the value to the selected register
     switch ( ccr )
@@ -193,7 +251,7 @@ void halTimer_b_setInterruptions(int boolean)
  */
 void halTimer_b_setCCRInterruption(int ccr, int boolean)
 {
-    volatile unsigned int *TB0CCTLX = NULL;
+    WORD_PTR TB0CCTLX = NULL;
 
     switch ( ccr )
     {
@@ -235,20 +293,9 @@ void halTimer_b_setCCRInterruption(int ccr, int boolean)
  */
 void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
 {
-    unsigned int ticks = 0;
+    unsigned int ticks = 0;     // Number to count before issuing an interruption
 
-    // Check which clock are we using, and calculate the
-    // number of ticks required for the amount of time
-    switch ( TB0CTL & TX_CTL_TXSSEL )
-    {
-        case TIMER_CLKSRC_ACLK:
-            ticks = ACLK_TICKS_PER_SECOND * time;
-            break;
-
-        case TIMER_CLKSRC_SMCLK:
-            ticks = SMCLK_TICK_PER_SECOND * time;
-            break;
-    }
+    ticks = calculate_ticks(TB0CTL, time);
 
     // Save the value to the selected register
     switch ( ccr )

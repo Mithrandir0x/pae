@@ -1,5 +1,7 @@
 
 #include <msp430x54xa.h>
+#include <hal_ucs.h>
+#include <hal_bio_ax12.h>
 
 typedef unsigned char byte;
 
@@ -8,14 +10,14 @@ typedef unsigned char byte;
 
 void initialize_ucs()
 {
-    unsigned short FLLN = 100;
+    unsigned short FLLN = 489;
 
-	__bis_SR_register(SCG0); // Toggle the Frequency Locked Loop (Should disable FLL)
+	__bis_SR_register(SCG0); // Disable the Frequency Locked Loop
 							 // More information at page 30 (Operating Modes)
 
 	//UCSCTL0 = 0x0000 + ( BIT8 | BIT9 | BITA | BITB | BITC ); // DCO = 0, MOD = 0
-	UCSCTL0 = 0x0000;
-	UCSCTL1 = DCORSEL_4; // DCORSEL = 7 This sets the frequency rang to [8.5, 19.6] MHz (Page 50 MSP430F5438A Datasheet)
+	UCSCTL0 = 0;
+	UCSCTL1 = DCORSEL_7; // DCORSEL = 7 This sets the frequency rang to [8.5, 19.6] MHz (Page 50 MSP430F5438A Datasheet)
 			// This means that the FLL reference is XT2CLK (And this is only valid for F543x(A?) models)
 			// Although it may also mean that FLL reference is ~16MHz (??)
 
@@ -43,7 +45,7 @@ void initialize_ucs()
 			| DIVS_1 // Selects SMCLK source divider to 2
 			| DIVM_0; // Selects MCLK source divider to 1
 
-	__bis_SR_register(SCG0);  // Toggle the Frequency Locked Loop (Should enable FLL)
+	__bic_SR_register(SCG0);  // Enable the Frequency Locked Loop
 
 	// Notice that P11 only has 3 lines, and its going to output all clock
 	// source frequencies to verify if they're valid
@@ -104,6 +106,7 @@ void initialize_uart()
  * Instruction Packet Spec:
  *
  * 		[0xFF] [0xFF] [ID] [LNG] [INT] [PA_1] [PA_2] ... [PA_N] [CHKSM]
+ * 		  0      1     2     3     4     5      6          N-1     N
  *
  * Status Packet Spec:
  *
@@ -115,6 +118,7 @@ typedef struct {
 	byte instruction;
 	byte* parameters;
 	byte length;
+	byte checksum;
 } AX_12_PACKET;
 
 void main()
