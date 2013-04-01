@@ -8,6 +8,8 @@
 
 #define CLK_MASK ( BIT2 | BIT1 | BIT0 )
 
+#define FLLN_16M    489
+
 volatile int __clock_mode = UCS_MODE_FACTORY;
 
 /**
@@ -111,7 +113,7 @@ void halUCS_set16MFrequency()
     // Setting MOD to any value different to 0, it will change DCO value to {DCO + 1}
     UCSCTL0 = 0;
 
-    UCSCTL1 = DCORSEL_16M; // Set the frequency range to [~13, ~100] MHz (Page 50 MSP430F5438A Datasheet)
+    UCSCTL1 = DCORSEL_7; // Set the frequency range to [~13, ~100] MHz (Page 50 MSP430F5438A Datasheet)
 
     UCSCTL2 = FLLN_16M + FLLD_0; // Set D value to 1 and N to 489
     UCSCTL3 = SELREF__XT1CLK + FLLREFDIV_0; // Select XT1CLK as clock reference and divide it by 1.

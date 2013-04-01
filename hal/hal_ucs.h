@@ -9,9 +9,6 @@
 #define UCS_MODE_FACTORY 0
 #define UCS_MODE_16M     1
 
-#define FLLN_16M    489
-#define DCORSEL_16M DCORSEL_7
-
 void halUCS_setFrequencyDiagnosis(int mode);
 int halUCS_getFrequencyMode();
 void halUCS_disableFrequencyMode();
