@@ -8,8 +8,6 @@
 #include "hal_common.h"
 #include "hal_bio_ax12.h"
 
-#define TXD0_READY -1 // FIXME Find the F5438 register that checks TX readiness
-
 #define ERROR -1
 
 #define INS_NONE       0x00
@@ -80,13 +78,53 @@
 #define MEM_PUNCH_L       48 // Punch (Low)
 #define MEM_PUNCH_H       49 // Punch (High)
 
+// MACROUTILS
+#define SET_TX ( P3OUT |= BIT7 )
+#define SET_RX ( P3OUT &= BIT7 )
+#define IS_RX_HEADER_SET ( rx[0] == 0xFF && rx[1] == 0xFF )
+#define RX_PACKET_LENGTH ( rx[3] )
+#define RX_PACKET_STATUS ( rx[4] )
+#define RX_PACKET_CHKSUM ( rx[RX_PACKET_LENGTH + 3] )
+
+// Packet Buffers
 volatile byte tx[TRX_BUFFER_SIZE];
 volatile byte rx[TRX_BUFFER_SIZE];
 
 volatile byte instruction = 0;
 volatile byte parameter_length = 0;
 
-volatile int wait_until_response = FALSE;
+volatile int receiving = FALSE;
+
+volatile int rx_index = -1;     // Index of the packet byte fed from
+
+/**
+ * Resets the transmit buffer.
+ */
+void clearInstruction()
+{
+    int i = 5;
+
+    tx[3] = 0;        // Set parameter length byte in buffer to 0
+    tx[4] = INS_NONE; // Set instruction byte in buffer to None
+    for ( ; i < TRX_BUFFER_SIZE ; i++ )
+    {
+        tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
+    }
+
+    parameter_length = 0;
+}
+
+/**
+ * Resets the receive buffer.
+ */
+void clearRxBuffer()
+{
+    int i = 0;
+    for ( ; i < TRX_BUFFER_SIZE ; i++ )
+    {
+        rx[i] = 0x00;
+    }
+}
 
 /**
  * Calculates the checksum for the current state of the transmit buffer.
@@ -108,14 +146,49 @@ byte checksum()
 }
 
 /**
- * Push the byte to the USCI UART transmit buffer.
+ * Verifies that the checksum of the receive buffer is valid.
  *
- * @param b The byte to be pushed.
+ * @return FALSE if invalid checksum, otherwise any value.
  */
-void sendbyte(byte b)
+int validate_checksum()
 {
-    while ( !TXD0_READY ); // Wait for transmit buffer to be ready
-    UCA0TXBUF = b;  // Fill the transmit buffer
+    int i = 2;
+    int n = 3 + RX_PACKET_LENGTH;
+    byte checksum = 0;
+
+    for ( ; i < n ; i++ )
+    {
+        checksum += rx[i];
+    }
+
+    return ( checksum == RX_PACKET_CHKSUM );
+}
+
+void receive()
+{
+    int valid_checksum;
+
+    SET_RX;
+
+    rx_index = 0;
+
+    receiving = FALSE;
+    while ( !receiving );
+
+    while ( TRUE )
+    {
+        if ( IS_RX_HEADER_SET )
+        {
+            if ( RX_PACKET_LENGTH != 0 && rx_index - 3 == RX_PACKET_LENGTH )
+            {
+                if ( RX_PACKET_CHKSUM != 0 )
+                {
+                    valid_checksum = validate_checksum();
+                    break;
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -125,12 +198,15 @@ void sendbyte(byte b)
  * @param id Identifier of the actuator
  * @return ERROR if something has gone awry, otherwise, GOOD.
  */
-int transmit(byte id)
+void transmit(byte id)
 {
     int i = 0;
     int packet_size = 6 + parameter_length;
 
-    P3OUT |= BIT7; // Set P3.7 as TRANSMIT
+    // Clear RX buffer
+    clearRxBuffer();
+
+    SET_TX; // Set P3.7 as TRANSMIT
 
     tx[0] = 0xFF;                 // Incoming packet Header
     tx[1] = 0xFF;                 // Incoming packet Header
@@ -141,15 +217,13 @@ int transmit(byte id)
 
     for ( ; i < packet_size ; i++ )
     {
-        sendbyte(tx[i]);
+        while ( !(UCA0IFG & UCTXIFG) ); // Wait for transmit buffer to be ready
+        UCA0TXBUF = tx[i];  // Fill the transmit buffer
     }
 
-    wait_until_response = TRUE;
-    while ( wait_until_response );
-}
+    SET_RX;
 
-int receive()
-{
+    //receive();
 }
 
 /**
@@ -168,23 +242,6 @@ int addParameter(byte parameter)
     }
 
     return ERROR;
-}
-
-/**
- * Resets the transmit buffer.
- */
-void clearInstruction()
-{
-    int i = 5;
-
-    tx[3] = 0;        // Set parameter length byte in buffer to 0
-    tx[4] = INS_NONE; // Set instruction byte in buffer to None
-    for ( ; i < TRX_BUFFER_SIZE ; i++ )
-    {
-        tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
-    }
-
-    parameter_length = 0;
 }
 
 /**
@@ -215,17 +272,19 @@ void halBioAX12_initialize()
                   // UART Mode (UCSMODEx = 0)
                   // Obviously, asynchronous mode // AX-12 Requirement
     UCA0CTL1 |= UCSSEL__SMCLK; // Set USCI Clock source (BRCLK) from SMCLK
-    UCA0BRW = 1; // Sets baud rate prescaler to 1
+    // UCA0BRW = 1;
+    UCA0BR0 = 1; // Sets baud rate prescaler to 1 (This means BRCLK is divided by 1)
+    UCA0BR1 = 0;
     UCA0MCTL = UCOS16; // Enable oversampling mode, but do not select any kind of modulation.
 
     // Up to here, the BRCLK is SMCLK/16.
 
-    P3SEL |= 0x30; // Port lines P3.4 and P3.5 selected as default I/O function
+    P3SEL |= ( BIT4 | BIT5 ); // Port lines P3.4 and P3.5 selected as default I/O function
         // P3.4 = UART0TX
         // P3.5 = UART0RX
 
-    P3REN |= 0x30; // Enable "Pull-Up/Pull-Down" resistor for P3.4 and P3.5
-    P3OUT |= 0x30; // Set initial state as "Pull-Up"
+    P3REN |= ( BIT4 | BIT5 ); // Enable "Pull-Up/Pull-Down" resistor for P3.4 and P3.5
+    P3OUT |= ( BIT4 | BIT5 ); // Set initial state as "Pull-Up"
 
     // Dynamixel Motors are Half-Duplex, meaning that we can only receive from OR transmit to.
     // P3.7 is in charge of selecting the data direction.
@@ -245,12 +304,39 @@ void halBioAX12_initialize()
  *
  * @return ERROR if something has gone awry.
  */
-int halBioAX12_ping(int id)
+void halBioAX12_ping(int id)
 {
-    int res;
-
     clearInstruction();
     setInstruction(INS_PING);
 
-    res = transmit(id);
+    transmit(id);
 }
+
+void halBioAX12_setLed(int id, int state)
+{
+    clearInstruction();
+    setInstruction(INS_WRITE_DATA);
+    addParameter(MEM_LED);
+
+    if ( state == OFF )
+        addParameter(0);
+    else
+        addParameter(1);
+
+    transmit(id);
+}
+
+/*
+#pragma vector = USCI_A0_VECTOR
+__interrupt void on_receive_byte()
+{
+    UCA0IE &= ~UCRXIE;
+
+    rx[rx_index] = UCA0RXBUF;
+    rx_index++;
+
+    receiving = TRUE;
+
+    UCA0IE |= UCRXIE;
+}
+*/

@@ -83,7 +83,7 @@ void halUCS_setFactoryFrequency()
 
     UCSCTL4 = SELA__XT1CLK     // Alternative Clock source comes from XT1 Oscillator
             | SELS__DCOCLKDIV  // Subsystem Master Clock source comes from Digital-Controlled Oscillator (Divided)
-            | SELM__DCOCLKDIV; // Master Clock source comes from Digital-Controlled Oscillator (Divided)
+            | SELM__DCOCLK; // Master Clock source comes from Digital-Controlled Oscillator (Divided)
 
     // Here we divide the frequency value by a specific value:
     UCSCTL5 = DIVA_0 // Selects ACLK source divider to 1

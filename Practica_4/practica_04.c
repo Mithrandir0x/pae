@@ -1,9 +1,8 @@
 
 #include <msp430x54xa.h>
+#include <hal_common.h>
 #include <hal_ucs.h>
 #include <hal_bio_ax12.h>
-
-typedef unsigned char byte;
 
 // SMCLK should be used for comm stuff
 // ACLK is recommended to be used for any other things
@@ -105,27 +104,33 @@ void initialize_uart()
  *
  * Instruction Packet Spec:
  *
- * 		[0xFF] [0xFF] [ID] [LNG] [INT] [PA_1] [PA_2] ... [PA_N] [CHKSM]
+ * 		[0xFF] [0xFF] [ID] [LNG] [INT] [PA_1] [PA_2] ... [PA_M] [CHKSM]
  * 		  0      1     2     3     4     5      6          N-1     N
+ *      [FF] [FF] [04] [02] [00] [FE]
+ *        0    1    2    3    4    5
  *
  * Status Packet Spec:
  *
- * 		[0xFF] [0xFF] [ID] [LNG] [ERR] [PA_1] [PA_2] ... [PA_N] [CHKSM]
+ * 		[0xFF] [0xFF] [ID] [LNG] [ERR] [PA_1] [PA_2] ... [PA_M] [CHKSM]
  */
 
-typedef struct {
+/* typedef struct {
 	byte error;
 	byte instruction;
 	byte* parameters;
 	byte length;
 	byte checksum;
-} AX_12_PACKET;
+} AX_12_PACKET; */
 
 void main()
 {
-    initialize_ucs();
-
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)
+
+    halUCS_setFactoryFrequency();
+    halUCS_setFrequencyDiagnosis(ON);
+
+    halBioAX12_initialize();
+    halBioAX12_setLed(4, ON);
 
     while (1);
 }
