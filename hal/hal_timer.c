@@ -44,6 +44,8 @@
 
 /**
  * Returns the current clock frequency.
+ *
+ * (For now, Clock Reference should always be XT1)
  */
 int calculate_clock_frequency()
 {
@@ -52,12 +54,11 @@ int calculate_clock_frequency()
     unsigned int clkref = 0;
     unsigned int clkrefdiv = 1;
 
-    d = ( UCSCTL2 & ( BITE | BITD | BITC ) ) >> 12;
-    n = UCSCTL2 & ~(BITF | BITE | BITD | BITC);
-    clkref = ( UCSCTL3 & ( BIT6 | BIT5 | BIT4 ) ) >> 4;
-    clkrefdiv = UCSCTL3 & 0x7;
+    d = 1 << ( ( UCSCTL2 & 0x7000 ) >> 12 );
+    n = UCSCTL2 & 0x03FF;
+    clkrefdiv = 1 << ( UCSCTL3 & 0x7 );
 
-    return d * ( n + 1 ) * ( clkref / clkrefdiv );
+    return d * ( n + 1 ) * ( 32768 / clkrefdiv );
 }
 
 /**
@@ -68,6 +69,7 @@ int calculate_ticks(int control_register, int time)
     unsigned int ticks = 0;     // Number to count before issuing an interruption
     unsigned int tps_aclk = 0;  // Ticks Per milliSecond from ACLK
     unsigned int tps_smclk = 0; // Ticks Per milliSecond from SMCLK
+    int estimated_clk = 0;
 
     // Depending on the frequency mode, we set the proper quantity of
     // ticks per millisecond from each clock signal the timer can work
@@ -83,7 +85,13 @@ int calculate_ticks(int control_register, int time)
             tps_smclk = TIMER_TPS_SMCLK_16M;
             break;
         default: // UCS_MODE_CUSTOM
-            // TODO Calculate TPS_XXCLK for UCS Custom Mode
+            estimated_clk = calculate_clock_frequency();
+            tps_aclk = estimated_clk / ( 1 << ( ( UCSCTL4 & 0x0700 ) >> 8 ) );
+            tps_aclk = tps_aclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 8 ) );
+            tps_aclk = tps_aclk / 1000;
+            tps_smclk = estimated_clk / ( 1 << ( ( UCSCTL4 & 0x0700 ) >> 4 ) );
+            tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 4 ) );
+            tps_smclk = tps_smclk / 1000;
             break;
     }
 

@@ -58,8 +58,8 @@ int halUCS_getFrequencyMode()
  * This is the default mode.
  *
  * Configures clock signals:
- *   - MCLK:  ~2MHz, sourced from DCO
- *   - SMCLK: ~1MHz, sourced from DCODIV
+ *   - MCLK:  ~1MHz, sourced from DCO
+ *   - SMCLK: ~1MHz, sourced from DCO
  *   - ACLK:  32768Hz, sourced from XT1 Osc.
  *
  * Frequency Mode: UCS_MODE_FACTORY
@@ -83,7 +83,7 @@ void halUCS_setFactoryFrequency()
 
     UCSCTL4 = SELA__XT1CLK     // Alternative Clock source comes from XT1 Oscillator
             | SELS__DCOCLKDIV  // Subsystem Master Clock source comes from Digital-Controlled Oscillator (Divided)
-            | SELM__DCOCLK; // Master Clock source comes from Digital-Controlled Oscillator (Divided)
+            | SELM__DCOCLKDIV; // Master Clock source comes from Digital-Controlled Oscillator (Divided)
 
     // Here we divide the frequency value by a specific value:
     UCSCTL5 = DIVA_0 // Selects ACLK source divider to 1
