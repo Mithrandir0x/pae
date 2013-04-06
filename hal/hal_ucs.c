@@ -10,8 +10,6 @@
 
 #define FLLN_16M    489
 
-volatile int __clock_mode = UCS_MODE_FACTORY;
-
 /**
  * Allows to enable or disable outputting XXCLK signal to P11.
  *
@@ -29,29 +27,6 @@ void halUCS_setFrequencyDiagnosis(int mode)
         P11DIR |= CLK_MASK; // Sets P11 as "OUTPUT"
         P11SEL |= CLK_MASK; // Selects P11 to work for specific purpose (output MCLK, ACLK, SMCLK signals)
     }
-}
-
-/**
- * If the UCS is set without using this API, it is recommended to
- * call this method, as it will allow any other devices depending
- * on this unit to perform as it should.
- */
-void halUCS_disableFrequencyMode()
-{
-    __clock_mode = UCS_MODE_CUSTOM;
-}
-
-/**
- * Returns the current working mode of the clock.
- *
- * WARNING!
- * --------
- * This method cannot warrant to indicate exactly the
- * state of the clock.
- */
-int halUCS_getFrequencyMode()
-{
-    return __clock_mode;
 }
 
 /**
@@ -89,8 +64,6 @@ void halUCS_setFactoryFrequency()
     UCSCTL5 = DIVA_0 // Selects ACLK source divider to 1
             | DIVS_0 // Selects SMCLK source divider to 1
             | DIVM_0; // Selects MCLK source divider to 1
-
-    __clock_mode = UCS_MODE_FACTORY;
 
     __bic_SR_register(SCG0);  // Enable the Frequency Locked Loop
 }
@@ -130,8 +103,6 @@ void halUCS_set16MFrequency()
     UCSCTL5 = DIVA_0 // Selects ACLK source divider to 1
             | DIVS_0 // Selects SMCLK source divider to 2
             | DIVM_0; // Selects MCLK source divider to 1
-
-    __clock_mode = UCS_MODE_16M;
 
     __bic_SR_register(SCG0);  // Enable the Frequency Locked Loop
 }

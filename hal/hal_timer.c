@@ -42,23 +42,33 @@
 #define CCIFG BIT0
 #endif
 
+#define UCS_SELX_XT1CLK    0
+#define UCS_SELX_DCOCLK    3
+#define UCS_SELX_DCOCLKDIV 4
+
 /**
- * Returns the current clock frequency.
+ * Calculate the frequency by its clock source.
  *
- * (For now, Clock Reference should always be XT1)
+ * @param selector This value is used to know from which source does the clock come from.
  */
-int calculate_clock_frequency()
+int calculate_clock_frequency_by_source(unsigned int selector)
 {
     unsigned int d = 1;
     unsigned int n = 0;
     unsigned int clkref = 0;
     unsigned int clkrefdiv = 1;
 
+    if ( selector == UCS_SELX_XT1CLK )
+        return 32768;
+
     d = 1 << ( ( UCSCTL2 & 0x7000 ) >> 12 );
     n = UCSCTL2 & 0x03FF;
     clkrefdiv = 1 << ( UCSCTL3 & 0x7 );
 
-    return d * ( n + 1 ) * ( 32768 / clkrefdiv );
+    if ( selector == UCS_SELX_DCOCLK )
+        return d * ( n + 1 ) * ( 32768 / clkrefdiv );
+    else
+        return ( n + 1 ) * ( 32768 / clkrefdiv );
 }
 
 /**
@@ -69,31 +79,14 @@ int calculate_ticks(int control_register, int time)
     unsigned int ticks = 0;     // Number to count before issuing an interruption
     unsigned int tps_aclk = 0;  // Ticks Per milliSecond from ACLK
     unsigned int tps_smclk = 0; // Ticks Per milliSecond from SMCLK
-    int estimated_clk = 0;
 
-    // Depending on the frequency mode, we set the proper quantity of
-    // ticks per millisecond from each clock signal the timer can work
-    // with.
-    switch ( halUCS_getFrequencyMode() )
-    {
-        case UCS_MODE_FACTORY:
-            tps_aclk = TIMER_TPS_ACLK_FACTORY;
-            tps_smclk = TIMER_TPS_SMCLK_FACTORY;
-            break;
-        case UCS_MODE_16M:
-            tps_aclk = TIMER_TPS_ACLK_16M;
-            tps_smclk = TIMER_TPS_SMCLK_16M;
-            break;
-        default: // UCS_MODE_CUSTOM
-            estimated_clk = calculate_clock_frequency();
-            tps_aclk = estimated_clk / ( 1 << ( ( UCSCTL4 & 0x0700 ) >> 8 ) );
-            tps_aclk = tps_aclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 8 ) );
-            tps_aclk = tps_aclk / 1000;
-            tps_smclk = estimated_clk / ( 1 << ( ( UCSCTL4 & 0x0700 ) >> 4 ) );
-            tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 4 ) );
-            tps_smclk = tps_smclk / 1000;
-            break;
-    }
+    // Calculate TPS for each clock signal
+    tps_aclk = calculate_clock_frequency((UCSCTL4 & 0x0700 ) >> 8);
+    tps_aclk = tps_aclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 8 ) );
+    tps_aclk = tps_aclk / 1000;
+    tps_smclk = calculate_clock_frequency((UCSCTL4 & 0x0070 ) >> 4);
+    tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0070 ) >> 4 ) );
+    tps_smclk = tps_smclk / 1000;
 
     // Check which clock signal the micro is using, and calculate the
     // number of ticks required for the amount of time passed by argument.
