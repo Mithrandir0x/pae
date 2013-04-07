@@ -6,21 +6,6 @@
 
 #include "hal_common.h"
 #include "hal_timer.h"
-#include "hal_ucs.h"
-
-// For more oscillator information, refer to:
-//   MSP430F5438_Datasheet, Crystal Oscillator XT1, Low-Frequency Mode (page 46)
-
-#define ACLK_TICKS_PER_SECOND 32 // floor(32768 Hz / 1000 ms)
-#define SMCLK_TICK_PER_SECOND 1000 // 10 ** 6 Hz / 10 ** 3 ms
-
-#define TIMER_TPS_ACLK_FACTORY  32
-#define TIMER_TPS_MCLK_FACTORY  2000
-#define TIMER_TPS_SMCLK_FACTORY 1000
-
-#define TIMER_TPS_ACLK_16M  32
-#define TIMER_TPS_MCLK_16M  16056
-#define TIMER_TPS_SMCLK_16M 8028
 
 #define TX_CTL_TXSSEL ( BIT9 | BIT8 )
 #define TX_CTL_MC     BIT5 | BIT4
