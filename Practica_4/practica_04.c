@@ -104,7 +104,7 @@ void initialize_uart()
  *
  * Instruction Packet Spec:
  *
- * 		[0xFF] [0xFF] [ID] [LNG] [INT] [PA_1] [PA_2] ... [PA_M] [CHKSM]
+ * 		[0xFF] [0xFF] [ID] [LNG] [INST] [PA_1] [PA_2] ... [PA_M] [CHKSM]
  * 		  0      1     2     3     4     5      6          N-1     N
  *      [FF] [FF] [04] [02] [00] [FE]
  *        0    1    2    3    4    5

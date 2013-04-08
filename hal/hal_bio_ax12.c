@@ -80,47 +80,48 @@
 
 // MACROUTILS
 #define SET_TX ( P3OUT |= BIT7 )
-#define SET_RX ( P3OUT &= BIT7 )
-#define IS_RX_HEADER_SET ( rx[0] == 0xFF && rx[1] == 0xFF )
+#define SET_RX ( P3OUT &= ~BIT7 )
+
 #define RX_PACKET_LENGTH ( rx[3] )
 #define RX_PACKET_STATUS ( rx[4] )
 #define RX_PACKET_CHKSUM ( rx[RX_PACKET_LENGTH + 3] )
+
+#define TX_PACKET_LENGTH      ( tx[3] )
+#define TX_PACKET_INSTRUCTION ( tx[4] )
+
+#define IS_RX_HEADER_SET ( rx[0] == 0xFF && rx[1] == 0xFF )
 
 // Packet Buffers
 volatile byte tx[TRX_BUFFER_SIZE];
 volatile byte rx[TRX_BUFFER_SIZE];
 
-volatile byte instruction = 0;
-volatile byte parameter_length = 0;
-
 volatile int receiving = FALSE;
-
 volatile int rx_index = -1;     // Index of the packet byte fed from
 
 /**
  * Resets the transmit buffer.
  */
-void clearInstruction()
+inline void clearInstruction()
 {
-    int i = 5;
+    int i;
 
     tx[3] = 0;        // Set parameter length byte in buffer to 0
     tx[4] = INS_NONE; // Set instruction byte in buffer to None
-    for ( ; i < TRX_BUFFER_SIZE ; i++ )
+    for ( i = 5 ; i < TRX_BUFFER_SIZE ; i++ )
     {
         tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
     }
 
-    parameter_length = 0;
+    TX_PACKET_LENGTH = 0;
 }
 
 /**
  * Resets the receive buffer.
  */
-void clearRxBuffer()
+inline void clearRxBuffer()
 {
-    int i = 0;
-    for ( ; i < TRX_BUFFER_SIZE ; i++ )
+    int i;
+    for ( i = 0 ; i < TRX_BUFFER_SIZE ; i++ )
     {
         rx[i] = 0x00;
     }
@@ -133,11 +134,11 @@ void clearRxBuffer()
  */
 byte checksum()
 {
-    int i = 2;
-    int n = 3 + parameter_length; // ID + LENGTH + INSTRUCTION + PARAM_1 + ··· + PARAM_N
+    int i;
+    int n = 3 + TX_PACKET_LENGTH; // ID + LENGTH + INSTRUCTION + PARAM_1 + ··· + PARAM_N
     byte checksum = 0;
 
-    for ( ; i < n ; i++ )
+    for ( i = 2 ; i < n ; i++ )
     {
         checksum += tx[i];
     }
@@ -164,10 +165,9 @@ int validate_checksum()
     return ( checksum == RX_PACKET_CHKSUM );
 }
 
-void receive()
+// FIXME DO FRIGGING TIMEOUT!
+int receive()
 {
-    int valid_checksum;
-
     SET_RX;
 
     rx_index = 0;
@@ -181,14 +181,16 @@ void receive()
         {
             if ( RX_PACKET_LENGTH != 0 && rx_index - 3 == RX_PACKET_LENGTH )
             {
-                if ( RX_PACKET_CHKSUM != 0 )
-                {
-                    valid_checksum = validate_checksum();
-                    break;
-                }
+                return validate_checksum();
             }
         }
     }
+}
+
+inline void sendByte(byte b)
+{
+    while ( !(UCA0IFG & UCTXIFG) ); // Wait for transmit buffer to be ready
+    UCA0TXBUF = b;  // Fill the transmit buffer
 }
 
 /**
@@ -201,24 +203,23 @@ void receive()
 void transmit(byte id)
 {
     int i = 0;
-    int packet_size = 6 + parameter_length;
+    int packet_size = 6 + TX_PACKET_LENGTH;
 
     // Clear RX buffer
     clearRxBuffer();
 
     SET_TX; // Set P3.7 as TRANSMIT
 
-    tx[0] = 0xFF;                 // Incoming packet Header
-    tx[1] = 0xFF;                 // Incoming packet Header
-    tx[2] = id;                   // AX12 Actuator Identifier
-    tx[3] = parameter_length + 2; // Length of the packet to be sent
-    tx[4] = instruction;          // ID of the instruction to execute
+    tx[0] = 0xFF;                  // Incoming packet Header
+    tx[1] = 0xFF;                  // Incoming packet Header
+    tx[2] = id;                    // AX12 Actuator Identifier
+    tx[3] = TX_PACKET_LENGTH + 2;  // Length of the packet to be sent
+    tx[4] = TX_PACKET_INSTRUCTION; // ID of the instruction to execute
     tx[packet_size - 1] = checksum(); // Checksum
 
     for ( ; i < packet_size ; i++ )
     {
-        while ( !(UCA0IFG & UCTXIFG) ); // Wait for transmit buffer to be ready
-        UCA0TXBUF = tx[i];  // Fill the transmit buffer
+        sendByte(tx[i]);
     }
 
     SET_RX;
@@ -234,11 +235,11 @@ void transmit(byte id)
  */
 int addParameter(byte parameter)
 {
-    int i = 5 + parameter_length;    // Get the index of the most new parameter to be added
+    int i = 5 + TX_PACKET_LENGTH;    // Get the index of the newest parameter to be added
     if ( i < TRX_BUFFER_SIZE - 1 )   // Check if the buffer allows anymore parameters
     {
         tx[i] = parameter;           // If so, set the parameter
-        return ++parameter_length;   // and return the index of such parameter.
+        return ++TX_PACKET_LENGTH;   // and return the index of such parameter.
     }
 
     return ERROR;
@@ -251,7 +252,8 @@ int addParameter(byte parameter)
  */
 inline void setInstruction(byte inst)
 {
-    instruction = inst;
+    clearInstruction();
+    TX_PACKET_INSTRUCTION = inst;
 }
 
 /**
@@ -306,7 +308,6 @@ void halBioAX12_initialize()
  */
 void halBioAX12_ping(int id)
 {
-    clearInstruction();
     setInstruction(INS_PING);
 
     transmit(id);
@@ -314,7 +315,6 @@ void halBioAX12_ping(int id)
 
 void halBioAX12_setLed(int id, int state)
 {
-    clearInstruction();
     setInstruction(INS_WRITE_DATA);
     addParameter(MEM_LED);
 

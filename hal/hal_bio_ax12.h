@@ -19,7 +19,6 @@ typedef struct {
 
 void halBioAX12_initialize();
 
-// Instructions
 void halBioAX12_ping(int id);
 void halBioAX12_setLed(int id, int state);
 
