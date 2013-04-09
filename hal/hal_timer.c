@@ -40,7 +40,7 @@ int calculate_clock_frequency_by_source(unsigned int selector)
 {
     unsigned int d = 1;
     unsigned int n = 0;
-    unsigned int clkref = 0;
+    unsigned int clkref = 32768;
     unsigned int clkrefdiv = 1;
 
     if ( selector == UCS_SELX_XT1CLK )
@@ -51,9 +51,9 @@ int calculate_clock_frequency_by_source(unsigned int selector)
     clkrefdiv = 1 << ( UCSCTL3 & 0x7 );
 
     if ( selector == UCS_SELX_DCOCLK )
-        return d * ( n + 1 ) * ( 32768 / clkrefdiv );
+        return d * ( n + 1 ) * ( clkref / clkrefdiv );
     else
-        return ( n + 1 ) * ( 32768 / clkrefdiv );
+        return ( n + 1 ) * ( clkref / clkrefdiv );
 }
 
 /**
@@ -66,10 +66,10 @@ int calculate_ticks(int control_register, int time)
     unsigned int tps_smclk = 0; // Ticks Per milliSecond from SMCLK
 
     // Calculate TPS for each clock signal
-    tps_aclk = calculate_clock_frequency((UCSCTL4 & 0x0700 ) >> 8);
+    tps_aclk = calculate_clock_frequency_by_source((UCSCTL4 & 0x0700 ) >> 8);
     tps_aclk = tps_aclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 8 ) );
     tps_aclk = tps_aclk / 1000;
-    tps_smclk = calculate_clock_frequency((UCSCTL4 & 0x0070 ) >> 4);
+    tps_smclk = calculate_clock_frequency_by_source((UCSCTL4 & 0x0070 ) >> 4);
     tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0070 ) >> 4 ) );
     tps_smclk = tps_smclk / 1000;
 
