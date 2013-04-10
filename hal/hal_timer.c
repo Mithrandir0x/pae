@@ -36,7 +36,7 @@
  *
  * @param selector This value is used to know from which source does the clock come from.
  */
-int calculate_clock_frequency_by_source(unsigned int selector)
+unsigned int calculate_clock_frequency_by_source(unsigned int selector)
 {
     unsigned int d = 1;
     unsigned int n = 0;

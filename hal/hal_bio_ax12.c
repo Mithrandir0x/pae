@@ -105,20 +105,18 @@ inline void clearInstruction()
 {
     int i;
 
-    tx[3] = 0;        // Set parameter length byte in buffer to 0
-    tx[4] = INS_NONE; // Set instruction byte in buffer to None
+    TX_PACKET_LENGTH = 0;        // Set parameter length byte in buffer to 0
+    TX_PACKET_INSTRUCTION = INS_NONE; // Set instruction byte in buffer to None
     for ( i = 5 ; i < TRX_BUFFER_SIZE ; i++ )
     {
         tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
     }
-
-    TX_PACKET_LENGTH = 0;
 }
 
 /**
  * Resets the receive buffer.
  */
-inline void clearRxBuffer()
+void clearRxBuffer()
 {
     int i;
     for ( i = 0 ; i < TRX_BUFFER_SIZE ; i++ )
@@ -135,7 +133,7 @@ inline void clearRxBuffer()
 byte checksum()
 {
     int i;
-    int n = 3 + TX_PACKET_LENGTH; // ID + LENGTH + INSTRUCTION + PARAM_1 + ··· + PARAM_N
+    int n = 3 + TX_PACKET_LENGTH; // ID + LENGTH + INSTRUCTION + ( PARAM_1 + ··· + PARAM_N )
     byte checksum = 0;
 
     for ( i = 2 ; i < n ; i++ )
@@ -168,6 +166,8 @@ int validate_checksum()
 // FIXME DO FRIGGING TIMEOUT!
 int receive()
 {
+    volatile int checksum;
+
     SET_RX;
 
     rx_index = 0;
@@ -179,15 +179,16 @@ int receive()
     {
         if ( IS_RX_HEADER_SET )
         {
-            if ( RX_PACKET_LENGTH != 0 && rx_index - 3 == RX_PACKET_LENGTH )
+            if ( rx_index >= RX_PACKET_LENGTH + 4 ) // 0xFF + 0xFF + ID + CHKSM
             {
-                return validate_checksum();
+                checksum = validate_checksum();
+                return checksum;
             }
         }
     }
 }
 
-inline void sendByte(byte b)
+void sendByte(byte b)
 {
     while ( !(UCA0IFG & UCTXIFG) ); // Wait for transmit buffer to be ready
     UCA0TXBUF = b;  // Fill the transmit buffer
@@ -202,7 +203,9 @@ inline void sendByte(byte b)
  */
 void transmit(byte id)
 {
-    int i = 0;
+    volatile unsigned int i = 0;
+    volatile int chk;
+    volatile int aux;
     int packet_size = 6 + TX_PACKET_LENGTH;
 
     // Clear RX buffer
@@ -210,21 +213,22 @@ void transmit(byte id)
 
     SET_TX; // Set P3.7 as TRANSMIT
 
-    tx[0] = 0xFF;                  // Incoming packet Header
-    tx[1] = 0xFF;                  // Incoming packet Header
-    tx[2] = id;                    // AX12 Actuator Identifier
-    tx[3] = TX_PACKET_LENGTH + 2;  // Length of the packet to be sent
-    tx[4] = TX_PACKET_INSTRUCTION; // ID of the instruction to execute
+    tx[0] = 0xFF;                     // Incoming packet Header
+    tx[1] = 0xFF;                     // Incoming packet Header
+    tx[2] = id;                       // AX12 Actuator Identifier
+    TX_PACKET_LENGTH += 2;            // Length of the packet to be sent
     tx[packet_size - 1] = checksum(); // Checksum
 
-    for ( ; i < packet_size ; i++ )
+    for ( i = 0 ; i < packet_size ; i++ )
     {
         sendByte(tx[i]);
     }
 
-    SET_RX;
+    i = 50;
+    while (i--); // Stoopid delay
 
-    //receive();
+    chk = receive();
+    aux = chk;
 }
 
 /**
@@ -264,6 +268,8 @@ inline void setInstruction(byte inst)
  */
 void halBioAX12_initialize()
 {
+    volatile unsigned int i = 0;
+
     UCA0CTL1 |= UCSWRST; // Enable Software reset. USCI logic held in reset state
 
     UCA0CTL0 = 0; // Disable parity  // AX-12 Requirement
@@ -299,6 +305,9 @@ void halBioAX12_initialize()
 
     UCA0CTL1 &= ~UCSWRST; // Disable Software reset.
     UCA0IE |= UCRXIE; // Enable Receive interruptions
+
+    i = 0xFFFF;
+    while (i--); // Stoopid delay
 }
 
 /**
@@ -326,7 +335,6 @@ void halBioAX12_setLed(int id, int state)
     transmit(id);
 }
 
-/*
 #pragma vector = USCI_A0_VECTOR
 __interrupt void on_receive_byte()
 {
@@ -339,4 +347,3 @@ __interrupt void on_receive_byte()
 
     UCA0IE |= UCRXIE;
 }
-*/

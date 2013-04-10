@@ -8,7 +8,7 @@
 
 #define CLK_MASK ( BIT2 | BIT1 | BIT0 )
 
-#define FLLN_16M    489
+#define FLLN_16M    487
 
 /**
  * Allows to enable or disable outputting XXCLK signal to P11.
