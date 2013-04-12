@@ -31,12 +31,16 @@
 #define UCS_SELX_DCOCLK    3
 #define UCS_SELX_DCOCLKDIV 4
 
+#define TIME_FACTOR_MILLI 1000
+#define TIME_FACTOR_MICRO 1000000
+
 /**
  * Calculate the frequency by its clock source.
  *
  * @param selector This value is used to know from which source does the clock come from.
+ * @return The clock source frequency.
  */
-unsigned int calculate_clock_frequency_by_source(unsigned int selector)
+unsigned long calculate_clock_frequency_by_source(int selector)
 {
     unsigned int d = 1;
     unsigned int n = 0;
@@ -58,20 +62,26 @@ unsigned int calculate_clock_frequency_by_source(unsigned int selector)
 
 /**
  * Calculate the amount of ticks to be counted.
+ *
+ * @param control_register A timer's control register to know which clock source is using.
+ * @param time             The amount of time that a timer will be counting before sending an interruption.
+ * @param timefactor       The time factor that allows set an interruption based on milliseconds (TIME_FACTOR_MILLI)
+ *                         or microseconds (TIME_FACTOR_MICRO).
+ * @return The value to count up to by a timer before sending an interruption.
  */
-int calculate_ticks(int control_register, int time)
+unsigned int calculate_ticks(int control_register, unsigned int time, unsigned long timefactor)
 {
-    unsigned int ticks = 0;     // Number to count before issuing an interruption
-    unsigned int tps_aclk = 0;  // Ticks Per milliSecond from ACLK
-    unsigned int tps_smclk = 0; // Ticks Per milliSecond from SMCLK
+    unsigned int ticks;
+    unsigned long tps_aclk = 0;  // Ticks Per milliSecond from ACLK
+    unsigned long tps_smclk = 0; // Ticks Per milliSecond from SMCLK
 
     // Calculate TPS for each clock signal
     tps_aclk = calculate_clock_frequency_by_source((UCSCTL4 & 0x0700 ) >> 8);
     tps_aclk = tps_aclk / ( 1 << ( ( UCSCTL5 & 0x0700 ) >> 8 ) );
-    tps_aclk = tps_aclk / 1000;
+    tps_aclk = tps_aclk / timefactor;
     tps_smclk = calculate_clock_frequency_by_source((UCSCTL4 & 0x0070 ) >> 4);
     tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0070 ) >> 4 ) );
-    tps_smclk = tps_smclk / 1000;
+    tps_smclk = tps_smclk / timefactor;
 
     // Check which clock signal the micro is using, and calculate the
     // number of ticks required for the amount of time passed by argument.
@@ -83,6 +93,8 @@ int calculate_ticks(int control_register, int time)
         case TIMER_CLKSRC_SMCLK:
             ticks = tps_smclk * time;
             break;
+        default:
+            ticks = 0xFFFF;
     }
 
     return ticks;
@@ -96,81 +108,14 @@ void halTimer_a1_initialize(int source, int mode)
 }
 
 /**
- * @param source The source to get pulses from.
- */
-void halTimer_a1_setClockSource(int source)
-{
-    TA1CTL &= ~TX_CTL_TXSSEL;
-    TA1CTL |= ( source & TX_CTL_TXSSEL );
-}
-
-/**
- * @param mode The mode to be set in TIMER_B.
- */
-void halTimer_a1_setMode(int mode)
-{
-    TA1CTL &= ~TX_CTL_MC;
-    TA1CTL |= ( mode & TX_CTL_MC );
-}
-
-/**
- * Clear TIMER_B counter.
- */
-void halTimer_a1_clear()
-{
-    TA1CTL &= ~TBCLR;
-}
-
-/**
- * @param boolean Either set TIMER_B interruptions ON or OFF.
- */
-void halTimer_a1_setInterruptions(int boolean)
-{
-    if ( boolean == OFF )
-        TA1CTL &= ~TBIE;
-    else
-        TA1CTL |= TBIE;
-}
-
-/**
- * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
- * @param boolean Set either ON or OFF CCR interruptions
- */
-void halTimer_a1_setCCRInterruption(int ccr, int boolean)
-{
-    WORD_PTR TA1CCTLX = NULL;
-
-    switch ( ccr )
-    {
-        case TIMER_CCR0:
-            TA1CCTLX = &TA1CCTL0;
-            break;
-        case TIMER_CCR1:
-            TA1CCTLX = &TA1CCTL1;
-            break;
-        case TIMER_CCR2:
-            TA1CCTLX = &TA1CCTL2;
-            break;
-    }
-
-    if ( TA1CCTLX != NULL )
-    {
-        if ( boolean == OFF )
-            *TA1CCTLX &= ~TX_CCTL_CCIE;
-        else
-            *TA1CCTLX |= TX_CCTL_CCIE;
-    }
-}
-
-/**
  * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
  * @param time Number of milliseconds to wait before interruption.
  */
-void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time)
+void halTimer_a1_setTimedInterruption(int ccr, unsigned int time, unsigned long timefactor)
 {
     unsigned int ticks = 0;     // Number to count before issuing an interruption
 
-    ticks = calculate_ticks(TA1CTL, time);
+    ticks = calculate_ticks(TA1CTL, time, timefactor);
 
     // Save the value to the selected register
     switch ( ccr )
@@ -187,6 +132,16 @@ void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time)
     }
 }
 
+void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time)
+{
+    halTimer_a1_setTimedInterruption(ccr, time, TIME_FACTOR_MILLI);
+}
+
+void halTimer_a1_setCCRMicroTimedInterruption(int ccr, unsigned int time)
+{
+    halTimer_a1_setTimedInterruption(ccr, time, TIME_FACTOR_MICRO);
+}
+
 void halTimer_b_initialize(int source, int mode)
 {
     TB0CTL = 0;
@@ -195,93 +150,14 @@ void halTimer_b_initialize(int source, int mode)
 }
 
 /**
- * @param source The source to get pulses from.
- */
-void halTimer_b_setClockSource(int source)
-{
-    TB0CTL &= ~TX_CTL_TXSSEL;
-    TB0CTL |= ( source & TX_CTL_TXSSEL );
-}
-
-/**
- * @param mode The mode to be set in TIMER_B.
- */
-void halTimer_b_setMode(int mode)
-{
-    TB0CTL &= ~TX_CTL_MC;
-    TB0CTL |= ( mode & TX_CTL_MC );
-}
-
-/**
- * Clear TIMER_B counter.
- */
-void halTimer_b_clear()
-{
-    TB0CTL &= ~TBCLR;
-}
-
-/**
- * @param boolean Either set TIMER_B interruptions ON or OFF.
- */
-void halTimer_b_setInterruptions(int boolean)
-{
-    if ( boolean == OFF )
-        TB0CTL &= ~TBIE;
-    else
-        TB0CTL |= TBIE;
-}
-
-/**
- * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
- * @param boolean Set either ON or OFF CCR interruptions
- */
-void halTimer_b_setCCRInterruption(int ccr, int boolean)
-{
-    WORD_PTR TB0CCTLX = NULL;
-
-    switch ( ccr )
-    {
-        case TIMER_CCR0:
-            TB0CCTLX = &TB0CCTL0;
-            break;
-        case TIMER_CCR1:
-            TB0CCTLX = &TB0CCTL1;
-            break;
-        case TIMER_CCR2:
-            TB0CCTLX = &TB0CCTL2;
-            break;
-        case TIMER_CCR3:
-            TB0CCTLX = &TB0CCTL3;
-            break;
-        case TIMER_CCR4:
-            TB0CCTLX = &TB0CCTL4;
-            break;
-        case TIMER_CCR5:
-            TB0CCTLX = &TB0CCTL5;
-            break;
-        case TIMER_CCR6:
-            TB0CCTLX = &TB0CCTL6;
-            break;
-    }
-
-    if ( TB0CCTLX != NULL )
-    {
-        if ( boolean == OFF )
-            *TB0CCTLX &= ~TX_CCTL_CCIE;
-        else
-            *TB0CCTLX |= TX_CCTL_CCIE;
-    }
-}
-
-/**
  * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
  * @param time Number of milliseconds to wait before interruption.
  */
-void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
+void halTimer_b_setTimedInterruption(int ccr, unsigned int time, unsigned long timefactor)
 {
     unsigned int ticks = 0;     // Number to count before issuing an interruption
 
-    ticks = calculate_ticks(TB0CTL, time);
+    ticks = calculate_ticks(TB0CTL, time, timefactor);
 
     // Save the value to the selected register
     switch ( ccr )
@@ -308,4 +184,14 @@ void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
             TB0CCR6 = ticks;
             break;
     }
+}
+
+void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time)
+{
+    halTimer_b_setTimedInterruption(ccr, time, TIME_FACTOR_MILLI);
+}
+
+void halTimer_b_setCCRMicroTimedInterruption(int ccr, unsigned int time)
+{
+    halTimer_b_setTimedInterruption(ccr, time, TIME_FACTOR_MICRO);
 }

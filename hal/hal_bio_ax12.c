@@ -7,6 +7,7 @@
 #include <msp430x54xa.h>
 #include "hal_common.h"
 #include "hal_bio_ax12.h"
+#include "hal_timer.h"
 
 #define ERROR -1
 
@@ -84,44 +85,108 @@
 
 #define RX_PACKET_LENGTH ( rx[3] )
 #define RX_PACKET_STATUS ( rx[4] )
-#define RX_PACKET_CHKSUM ( rx[RX_PACKET_LENGTH + 3] )
+#define RX_PACKET_CHKSUM ( rx[RX_PACKET_LENGTH + 3] ) // 0xFF + 0xFF + ID
 
 #define TX_PACKET_LENGTH      ( tx[3] )
 #define TX_PACKET_INSTRUCTION ( tx[4] )
 
 #define IS_RX_HEADER_SET ( rx[0] == 0xFF && rx[1] == 0xFF )
 
+/**
+ * This macro allows to surround blocks of code with a time-out mechanism. It's very
+ * similar to the "__delay" method, but it works a bit different. Instead of making
+ * the user-code to wait for the timer's interruption, it allows the user to define
+ * its own code to be executed.
+ *
+ * @param _MS_ The quantity of microseconds to wait before leaving
+ */
+#define __TIMEOUT(_MS_) halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, _MS_); __TIMEOUT_STALL = TRUE; while( __TIMEOUT_STALL )
+
+#define TRX_BUFFER_SIZE 32
+
 // Packet Buffers
-volatile byte tx[TRX_BUFFER_SIZE];
-volatile byte rx[TRX_BUFFER_SIZE];
+byte tx[TRX_BUFFER_SIZE];
+byte rx[TRX_BUFFER_SIZE];
+
+volatile int __STALL = FALSE;
+volatile int __TIMEOUT_STALL = FALSE;
 
 volatile int receiving = FALSE;
 volatile int rx_index = -1;     // Index of the packet byte fed from
 
-/**
- * Resets the transmit buffer.
- */
-inline void clearInstruction()
-{
-    int i;
+// Declaration of internal functions
+inline void __enable_interruptions();
+inline void __disable_interruptions();
 
-    TX_PACKET_LENGTH = 0;        // Set parameter length byte in buffer to 0
-    TX_PACKET_INSTRUCTION = INS_NONE; // Set instruction byte in buffer to None
-    for ( i = 5 ; i < TRX_BUFFER_SIZE ; i++ )
+// Interrupt Vector definitions
+#pragma vector = USCI_A0_VECTOR
+__interrupt void on_receive_byte()
+{
+    __disable_interruptions();
+
+    rx[rx_index] = UCA0RXBUF;
+    rx_index++;
+
+    receiving = TRUE;
+
+    __enable_interruptions();
+}
+
+#pragma vector = TIMER1_A0_VECTOR
+__interrupt void update_timeout_stall_state()
+{
+    halTimer_a1_disableInterruptCCR0();
+
+    if ( __STALL )
+        __STALL = FALSE;
+
+    if ( __TIMEOUT_STALL )
     {
-        tx[i] = 0x00; // Set every byte of the parameter array in the buffer to 0
+        __TIMEOUT_STALL = FALSE;
+        halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
     }
+
+    halTimer_a1_enableInterruptCCR0();
+}
+
+
+// Definition of some internal functions
+inline void __disable_interruptions()
+{
+    UCA0IE &= ~UCRXIE;
+}
+
+inline void __enable_interruptions()
+{
+    UCA0IE |= UCRXIE;
 }
 
 /**
- * Resets the receive buffer.
+ * Internal function to stall the processor.
+ *
+ * @param ms The amount of microseconds to wait before executing anything else.
  */
-void clearRxBuffer()
+void __delay(unsigned int ms)
+{
+    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
+
+    __STALL = TRUE;
+    while ( __STALL );
+
+    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+}
+
+/**
+ * Fills the buffer passed by parameter with 0x00 bytes.
+ *
+ * @param buffer Pointer to a buffer to be cleared (either "tx" or "rx")
+ */
+void clearBuffer(byte *buffer)
 {
     int i;
     for ( i = 0 ; i < TRX_BUFFER_SIZE ; i++ )
     {
-        rx[i] = 0x00;
+        buffer[i] = 0x00;
     }
 }
 
@@ -160,32 +225,33 @@ int validate_checksum()
         checksum += rx[i];
     }
 
-    return ( checksum == RX_PACKET_CHKSUM );
+    return ( ~checksum == RX_PACKET_CHKSUM );
 }
 
-// FIXME DO FRIGGING TIMEOUT!
 int receive()
 {
-    volatile int checksum;
+    rx_index = 0;
 
     SET_RX;
-
-    rx_index = 0;
 
     receiving = FALSE;
     while ( !receiving );
 
-    while ( TRUE )
+    __TIMEOUT(300) // FIXME Verify timeout time when waiting for packet reception
     {
         if ( IS_RX_HEADER_SET )
         {
             if ( rx_index >= RX_PACKET_LENGTH + 4 ) // 0xFF + 0xFF + ID + CHKSM
             {
-                checksum = validate_checksum();
-                return checksum;
+                if ( validate_checksum() )
+                    return RX_PACKET_STATUS;
+
+                break;
             }
         }
     }
+
+    return ERROR;
 }
 
 void sendByte(byte b)
@@ -201,7 +267,7 @@ void sendByte(byte b)
  * @param id Identifier of the actuator
  * @return ERROR if something has gone awry, otherwise, GOOD.
  */
-void transmit(byte id)
+int transmit(byte id)
 {
     volatile unsigned int i = 0;
     volatile int chk;
@@ -209,7 +275,7 @@ void transmit(byte id)
     int packet_size = 6 + TX_PACKET_LENGTH;
 
     // Clear RX buffer
-    clearRxBuffer();
+    clearBuffer(rx);
 
     SET_TX; // Set P3.7 as TRANSMIT
 
@@ -224,11 +290,9 @@ void transmit(byte id)
         sendByte(tx[i]);
     }
 
-    i = 50;
-    while (i--); // Stoopid delay
+    __delay(25); // FIXME Verify delay function when transmiting data
 
-    chk = receive();
-    aux = chk;
+    return receive();
 }
 
 /**
@@ -256,7 +320,7 @@ int addParameter(byte parameter)
  */
 inline void setInstruction(byte inst)
 {
-    clearInstruction();
+    clearBuffer(tx);
     TX_PACKET_INSTRUCTION = inst;
 }
 
@@ -265,6 +329,12 @@ inline void setInstruction(byte inst)
  * to allow communication with AX12 actuators.
  *
  * It uses Subsystem Master Clock (SMCLK) as source.
+ *
+ * WARNING!
+ * -----------------------------------------------------------------
+ * This API uses Timer A1 to manage certain state conditions. Do not
+ * implement an ISR based on TIMER A1.
+ * -----------------------------------------------------------------
  */
 void halBioAX12_initialize()
 {
@@ -306,23 +376,29 @@ void halBioAX12_initialize()
     UCA0CTL1 &= ~UCSWRST; // Disable Software reset.
     UCA0IE |= UCRXIE; // Enable Receive interruptions
 
-    i = 0xFFFF;
-    while (i--); // Stoopid delay
+    // Initialize timer a1. It will use SMCLK signal.
+    halTimer_a1_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
+
+    __delay(100); // FIXME Verify delay time when waiting for port stabilization
 }
 
 /**
  * The PING instruction of the AX-12.
- *
- * @return ERROR if something has gone awry.
  */
-void halBioAX12_ping(int id)
+int halBioAX12_ping(int id)
 {
     setInstruction(INS_PING);
 
-    transmit(id);
+    return transmit(id);
 }
 
-void halBioAX12_setLed(int id, int state)
+/**
+ * Set either ON or OFF the LED from an actuator.
+ *
+ * @param id The identifier of the actuator.
+ * @param state The state which the led should be, either ON or OFF.
+ */
+int halBioAX12_setLed(int id, int state)
 {
     setInstruction(INS_WRITE_DATA);
     addParameter(MEM_LED);
@@ -332,18 +408,5 @@ void halBioAX12_setLed(int id, int state)
     else
         addParameter(1);
 
-    transmit(id);
-}
-
-#pragma vector = USCI_A0_VECTOR
-__interrupt void on_receive_byte()
-{
-    UCA0IE &= ~UCRXIE;
-
-    rx[rx_index] = UCA0RXBUF;
-    rx_index++;
-
-    receiving = TRUE;
-
-    UCA0IE |= UCRXIE;
+    return transmit(id);
 }

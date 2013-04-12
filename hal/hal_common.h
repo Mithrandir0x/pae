@@ -22,6 +22,8 @@
 #define BIT14 BITE
 #define BIT15 BITF
 
+typedef unsigned char byte;
+
 typedef volatile unsigned int *WORD_PTR;
 
 #endif

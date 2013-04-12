@@ -14,9 +14,9 @@
 #define TIMER_CNT_10 BIT12             // 0x3FF
 #define TIMER_CNT_8  ( BIT12 | BIT11 ) // 0xFF
 
-#define TIMER_CLKSRC_ACLK  BIT8 // 32768 Hz == 2**15 Hz // Alternative Clock
+#define TIMER_CLKSRC_ACLK  BIT8             // Alternative Clock
 #define TIMER_CLKSRC_MCLK  ( BIT9 | BIT8 )  // Master Clock
-#define TIMER_CLKSRC_SMCLK BIT9 // 1 Mhz // Subsystem Master Clock
+#define TIMER_CLKSRC_SMCLK BIT9             // Subsystem Master Clock
 
 #define TIMER_MODE_STOP       0
 #define TIMER_MODE_UP         BIT4
@@ -35,20 +35,12 @@
 #define TIMER_A1_CCRX_VECTOR TIMER1_A1_VECTOR
 
 void halTimer_a1_initialize(int source, int mode);
-//void halTimer_a1_setClockSource(int source);
-//void halTimer_a1_setMode(int mode);
-//void halTimer_a1_setInterruptions(int boolean);
-//void halTimer_a1_setCCRInterruption(int ccr, int boolean);
 void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time);
-//void halTimer_a1_clear();
+void halTimer_a1_setCCRMicroTimedInterruption(int ccr, unsigned int time);
 
 void halTimer_b_initialize(int source, int mode);
-//void halTimer_b_setClockSource(int source);
-//void halTimer_b_setMode(int mode);
-//void halTimer_b_setInterruptions(int boolean);
-//void halTimer_b_setCCRInterruption(int ccr, int boolean);
 void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time);
-//void halTimer_b_clear();
+void halTimer_b_setCCRMicroTimedInterruption(int ccr, unsigned int time);
 
 inline void halTimer_b_disableInterruptCCR0()
 {

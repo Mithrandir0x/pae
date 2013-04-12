@@ -120,14 +120,6 @@ void initialize_uart()
  * 		FF FF 02 02 00 ~~
  */
 
-/* typedef struct {
-	byte error;
-	byte instruction;
-	byte* parameters;
-	byte length;
-	byte checksum;
-} AX_12_PACKET; */
-
 void initialize_super_dooper_ai()
 {
     halLed_sx_initialize();
