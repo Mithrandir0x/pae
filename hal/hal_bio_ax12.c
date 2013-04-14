@@ -111,7 +111,8 @@ byte rx[TRX_BUFFER_SIZE];
 volatile int __STALL = FALSE;
 volatile int __TIMEOUT_STALL = FALSE;
 
-volatile int receiving = FALSE;
+volatile int __BUFFER_OVERFLOW = FALSE;
+
 volatile int rx_index = -1;     // Index of the packet byte fed from
 
 // Declaration of internal functions
@@ -124,10 +125,15 @@ __interrupt void on_receive_byte()
 {
     __disable_interruptions();
 
-    rx[rx_index] = UCA0RXBUF;
-    rx_index++;
-
-    receiving = TRUE;
+    if ( rx_index < TRX_BUFFER_SIZE )
+    {
+        rx[rx_index] = UCA0RXBUF;
+        rx_index++;
+    }
+    else
+    {
+        __BUFFER_OVERFLOW = TRUE;
+    }
 
     __enable_interruptions();
 }
@@ -231,11 +237,9 @@ int validate_checksum()
 int receive()
 {
     rx_index = 0;
+    __BUFFER_OVERFLOW = FALSE;
 
     SET_RX;
-
-    receiving = FALSE;
-    while ( !receiving );
 
     __TIMEOUT(300) // FIXME Verify timeout time when waiting for packet reception
     {
@@ -270,12 +274,8 @@ void sendByte(byte b)
 int transmit(byte id)
 {
     volatile unsigned int i = 0;
-    volatile int chk;
-    volatile int aux;
+    volatile int result;
     int packet_size = 6 + TX_PACKET_LENGTH;
-
-    // Clear RX buffer
-    clearBuffer(rx);
 
     SET_TX; // Set P3.7 as TRANSMIT
 
@@ -292,7 +292,11 @@ int transmit(byte id)
 
     __delay(25); // FIXME Verify delay function when transmiting data
 
-    return receive();
+    result = receive();
+
+    SET_TX;
+
+    return result;
 }
 
 /**
@@ -321,6 +325,7 @@ int addParameter(byte parameter)
 inline void setInstruction(byte inst)
 {
     clearBuffer(tx);
+    clearBuffer(rx);
     TX_PACKET_INSTRUCTION = inst;
 }
 
@@ -338,8 +343,6 @@ inline void setInstruction(byte inst)
  */
 void halBioAX12_initialize()
 {
-    volatile unsigned int i = 0;
-
     UCA0CTL1 |= UCSWRST; // Enable Software reset. USCI logic held in reset state
 
     UCA0CTL0 = 0; // Disable parity  // AX-12 Requirement
