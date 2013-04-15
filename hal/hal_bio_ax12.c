@@ -9,6 +9,8 @@
 #include "hal_bio_ax12.h"
 #include "hal_timer.h"
 
+#define BROADCAST_ID 0xFE
+
 #define ERROR -1
 
 #define INS_NONE       0x00
@@ -27,57 +29,58 @@
 #define ERR_OVERHEAT BIT2
 #define ERR_ANG_LIM  BIT1
 #define ERR_IN_VOLT  BIT0
+#define ERR_NONE     0x00
 
 // EEPROM AREA
-#define MEM_MODEL_L       00 // Model Number (Low)
-#define MEM_MODEL_H       01 // Model Number (High)
-#define MEM_VFIRM         02 // Firmware Version
-#define MEM_ID            03 // Actuator Identifier
-#define MEM_BAUD_RATE     04 // Baud Rate
-#define MEM_RDT           05 // Return Delay Time
-#define MEM_CW_ANG_LIM_L  06 // Clockwise Angle Limit (Low)
-#define MEM_CW_ANG_LIM_H  07 // Clockwise Angle Limit (High)
-#define MEM_CCW_ANG_LIM_L 08 // Counter-Clockwise Angle Limit (Low)
-#define MEM_CCW_ANG_LIM_H 09 // Counter-Clockwise Angle Limit (High)
-#define MEM_TEMP_HIGH_LIM 11 // Highest Limit Temperature
-#define MEM_TEMP_LOW_LIM  12 // Lowest Limit Temperature
-#define MEM_VOLT_HIGH_LIM 13 // Highest Limit Voltage
-#define MEM_MAX_TORQUE_L  14 // Max Torque (Low)
-#define MEM_MAX_TORQUE_H  15 // Max Torque (High)
-#define MEM_SRL           16 // Status Return Level
-#define MEM_ALARM_LED     17 // Alarm LED
-#define MEM_ALARM_SHTDWN  18 // Alarm Shutdown
-#define MEM_DOWN_CALIB_L  20 // Down Calibration (Low)
-#define MEM_DOWN_CALIB_H  21 // Down Calibration (High)
-#define MEM_UP_CALIB_L    22 // Up Calibration (Low)
-#define MEM_UP_CALIB_H    23 // Up Calibration (High)
+#define MEM_MODEL_L       0x00 // Model Number (Low)
+#define MEM_MODEL_H       0x01 // Model Number (High)
+#define MEM_VFIRM         0x02 // Firmware Version
+#define MEM_ID            0x03 // Actuator Identifier
+#define MEM_BAUD_RATE     0x04 // Baud Rate
+#define MEM_RDT           0x05 // Return Delay Time
+#define MEM_CW_ANG_LIM_L  0x06 // Clockwise Angle Limit (Low)
+#define MEM_CW_ANG_LIM_H  0x07 // Clockwise Angle Limit (High)
+#define MEM_CCW_ANG_LIM_L 0x08 // Counter-Clockwise Angle Limit (Low)
+#define MEM_CCW_ANG_LIM_H 0x09 // Counter-Clockwise Angle Limit (High)
+#define MEM_TEMP_HIGH_LIM 0x0B // Highest Limit Temperature
+#define MEM_TEMP_LOW_LIM  0x0C // Lowest Limit Temperature
+#define MEM_VOLT_HIGH_LIM 0x0D // Highest Limit Voltage
+#define MEM_MAX_TORQUE_L  0x0E // Max Torque (Low)
+#define MEM_MAX_TORQUE_H  0x0F // Max Torque (High)
+#define MEM_SRL           0x10 // Status Return Level
+#define MEM_ALARM_LED     0x11 // Alarm LED
+#define MEM_ALARM_SHTDWN  0x12 // Alarm Shutdown
+#define MEM_DOWN_CALIB_L  0x14 // Down Calibration (Low)
+#define MEM_DOWN_CALIB_H  0x15 // Down Calibration (High)
+#define MEM_UP_CALIB_L    0x16 // Up Calibration (Low)
+#define MEM_UP_CALIB_H    0x17 // Up Calibration (High)
 
 // RAM AREA
-#define MEM_TORQUE        24 // Torque Enable
-#define MEM_LED           25 // LED
-#define MEM_CW_CMP_MARGN  26 // Clockwise Compliance Margin
-#define MEM_CCW_CMP_MARGN 27 // Counter-Clockwise Compliance Margin
-#define MEM_CW_CMP_SLOPE  28 // Clockwise Compliance Slope
-#define MEM_CCW_CMP_SLOPE 29 // Counter-Clockwise Compliance Slope
-#define MEM_GOAL_POS_L    30 // Goal Position (Low)
-#define MEM_GOAL_POS_H    31 // Goal Position (High)
-#define MEM_MOV_SPEED_L   32 // Moving Speed (Low)
-#define MEM_MOV_SPEED_H   33 // Moving Speed (High)
-#define MEM_TORQUE_LIM_L  34 // Torque Limit (Low)
-#define MEM_TORQUE_LIM_H  35 // Torque Limit (High)
-#define MEM_PRES_POS_L    36 // Present Position (Low)
-#define MEM_PRES_POS_H    37 // Present Position (High)
-#define MEM_PRES_SPEED_L  38 // Present Speed (Low)
-#define MEM_PRES_SPEED_H  39 // Present Speed (High)
-#define MEM_PRES_LOAD_L   40 // Present Load (Low)
-#define MEM_PRES_LOAD_H   41 // Present Load (High)
-#define MEM_PRES_VOLT     42 // Present Voltage
-#define MEM_PRES_TEMP     43 // Present Temperature
-#define MEM_REG_INST      44 // Registered Instruction
-#define MEM_MOVING        46 // Moving
-#define MEM_LOCK          47 // Lock
-#define MEM_PUNCH_L       48 // Punch (Low)
-#define MEM_PUNCH_H       49 // Punch (High)
+#define MEM_TORQUE        0x18 // Torque Enable
+#define MEM_LED           0x19 // LED
+#define MEM_CW_CMP_MARGN  0x1A // Clockwise Compliance Margin
+#define MEM_CCW_CMP_MARGN 0x1B // Counter-Clockwise Compliance Margin
+#define MEM_CW_CMP_SLOPE  0x1C // Clockwise Compliance Slope
+#define MEM_CCW_CMP_SLOPE 0x1D // Counter-Clockwise Compliance Slope
+#define MEM_GOAL_POS_L    0x1E // Goal Position (Low)
+#define MEM_GOAL_POS_H    0x1F // Goal Position (High)
+#define MEM_MOV_SPEED_L   0x20 // Moving Speed (Low)
+#define MEM_MOV_SPEED_H   0x21 // Moving Speed (High)
+#define MEM_TORQUE_LIM_L  0x22 // Torque Limit (Low)
+#define MEM_TORQUE_LIM_H  0x23 // Torque Limit (High)
+#define MEM_PRES_POS_L    0x24 // Present Position (Low)
+#define MEM_PRES_POS_H    0x25 // Present Position (High)
+#define MEM_PRES_SPEED_L  0x26 // Present Speed (Low)
+#define MEM_PRES_SPEED_H  0x27 // Present Speed (High)
+#define MEM_PRES_LOAD_L   0x28 // Present Load (Low)
+#define MEM_PRES_LOAD_H   0x29 // Present Load (High)
+#define MEM_PRES_VOLT     0x2A // Present Voltage
+#define MEM_PRES_TEMP     0x2B // Present Temperature
+#define MEM_REG_INST      0x2C // Registered Instruction
+#define MEM_MOVING        0x2E // Moving
+#define MEM_LOCK          0x2F // Lock
+#define MEM_PUNCH_L       0x30 // Punch (Low)
+#define MEM_PUNCH_H       0x31 // Punch (High)
 
 // MACROUTILS
 #define SET_TX ( P3OUT |= BIT7 )
@@ -300,6 +303,34 @@ int transmit(byte id)
 }
 
 /**
+ * This function transmit the current state of the transmit buffer, but it
+ * won't wait for any response.
+ *
+ * @param id Identifier of the actuator
+ */
+void lazy_transmit(byte id)
+{
+    volatile unsigned int i = 0;
+    volatile int result;
+    int packet_size = 6 + TX_PACKET_LENGTH;
+
+    SET_TX; // Set P3.7 as TRANSMIT
+
+    tx[0] = 0xFF;                     // Incoming packet Header
+    tx[1] = 0xFF;                     // Incoming packet Header
+    tx[2] = id;                       // AX12 Actuator Identifier
+    TX_PACKET_LENGTH += 2;            // Length of the packet to be sent
+    tx[packet_size - 1] = checksum(); // Checksum
+
+    for ( i = 0 ; i < packet_size ; i++ )
+    {
+        sendByte(tx[i]);
+    }
+
+    __delay(25); // FIXME Verify delay function when transmiting data (lazy_transmit)
+}
+
+/**
  * Adds a new parameter to the transmit buffer.
  *
  * @param parameter The value assigned to the parameter array.
@@ -387,6 +418,9 @@ void halBioAX12_initialize()
 
 /**
  * The PING instruction of the AX-12.
+ *
+ * @param id The identifier of the actuator.
+ * @return The error byte from the status packet or ERROR.
  */
 int halBioAX12_ping(int id)
 {
@@ -395,11 +429,19 @@ int halBioAX12_ping(int id)
     return transmit(id);
 }
 
+
+void halBioAX12_act(int id)
+{
+    setInstruction(INS_ACTION);
+    transmit(id);
+}
+
 /**
  * Set either ON or OFF the LED from an actuator.
  *
  * @param id The identifier of the actuator.
  * @param state The state which the led should be, either ON or OFF.
+ * @return The error byte from the status packet or ERROR.
  */
 int halBioAX12_setLed(int id, int state)
 {
@@ -412,4 +454,68 @@ int halBioAX12_setLed(int id, int state)
         addParameter(1);
 
     return transmit(id);
+}
+
+/**
+ * Set the actuator to endless turn mode. This allows to have a
+ * continuosly rotating wheel.
+ *
+ * @param id The identifier of the actuator.
+ * @return The error byte from the status packet or ERROR.
+ */
+int halBioAX12_enableEndlessTurn(int id)
+{
+    setInstruction(INS_WRITE_DATA);
+
+    addParameter(MEM_CW_ANG_LIM_L);
+    addParameter(0x00); // MEM_CW_ANG_LIM_L
+    addParameter(0x00); // MEM_CW_ANG_LIM_H
+    addParameter(0x00); // MEM_CCW_ANG_LIM_L
+    addParameter(0x00); // MEM_CCW_ANG_LIM_H
+
+    return transmit(id);
+}
+
+/**
+ * Returns the current voltage used by the actuator.
+ *
+ * @param id The identifier of the actuator.
+ * @return The voltage value used by the actuator or ERROR.
+ */
+int halBioAX12_getVoltage(int id)
+{
+    int result;
+
+    setInstruction(INS_READ_DATA);
+    addParameter(MEM_PRES_VOLT);
+    addParamter(0x01);
+
+    result = transmit(id);
+
+    if ( result != ERROR && RX_PACKET_STATUS == ERR_NONE )
+        return ( rx[5] / 10 ); // Spec says that voltage is 10 times its value.
+
+    return result;
+}
+
+/**
+ * Returns the current temperature in celsius degrees of the actuator.
+ *
+ * @param id The identifier of the actuator.
+ * @return The temperature in celsius of the actuator or ERROR.
+ */
+int halBioAX12_getTemperature(int id)
+{
+    int result;
+
+    setInstruction(INS_READ_DATA);
+    addParameter(MEM_PRES_TEMP);
+    addParamter(0x01);
+
+    result = transmit(id);
+
+    if ( result != ERROR && RX_PACKET_STATUS == ERR_NONE )
+        return rx[5];
+
+    return result;
 }
