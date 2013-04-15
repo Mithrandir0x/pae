@@ -293,7 +293,7 @@ int transmit(byte id)
         sendByte(tx[i]);
     }
 
-    __delay(25); // FIXME Verify delay function when transmiting data
+    __delay(20);
 
     result = receive();
 
@@ -327,7 +327,7 @@ void lazy_transmit(byte id)
         sendByte(tx[i]);
     }
 
-    __delay(25); // FIXME Verify delay function when transmiting data (lazy_transmit)
+    __delay(20);
 }
 
 /**
@@ -429,11 +429,10 @@ int halBioAX12_ping(int id)
     return transmit(id);
 }
 
-
 void halBioAX12_act(int id)
 {
     setInstruction(INS_ACTION);
-    transmit(id);
+    lazy_transmit(id);
 }
 
 /**
@@ -452,6 +451,32 @@ int halBioAX12_setLed(int id, int state)
         addParameter(0);
     else
         addParameter(1);
+
+    return transmit(id);
+}
+
+/**
+ * Set the speed and turn direction of the motor.
+ *
+ * @param id The identifier of the actuator.
+ * @param speed
+ * @param direction Set the turn direction either clockwise (AX12_CW) or counter-clockwise (AX12_CCW)
+ */
+int halBioAX12_setMovingSpeed(int id, int speed, int direction)
+{
+    int hi = 0x00;
+    int lo = 0x00;
+
+    lo |= ( speed & 0x00ff );
+
+    hi |= ( ( speed & 0x0300 ) >> 8 );
+    if ( direction == AX12_CW )
+        hi |= 0x0400;
+
+    setInstruction(INS_WRITE_DATA);
+    addParameter(MEM_MOV_SPEED_L);
+    addParameter(lo); // MEM_MOV_SPEED_L
+    addParameter(hi); // MEM_MOV_SPEED_H
 
     return transmit(id);
 }
@@ -516,6 +541,32 @@ int halBioAX12_getTemperature(int id)
 
     if ( result != ERROR && RX_PACKET_STATUS == ERR_NONE )
         return rx[5];
+
+    return result;
+}
+
+/**
+ * Returns the current angular velocity of the actuator.
+ *
+ * @param id The identifier of the actuator.
+ * @return The current angular velocity.
+ */
+int halBioAX12_getPresentSpeed(int id)
+{
+    int result;
+
+    setInstruction(INS_READ_DATA);
+    addParameter(MEM_PRES_SPEED_L);
+    addParamter(0x02);
+
+    result = transmit(id);
+
+    if ( result != ERROR && RX_PACKET_STATUS == ERR_NONE )
+    {
+        // rx[5] MEM_PRES_SPEED_L
+        // rx[6] MEM_PRES_SPEED_H
+        return ( rx[5] | ( rx[6] << 8 ) );
+    }
 
     return result;
 }
