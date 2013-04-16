@@ -6,25 +6,6 @@
 #include <hal_ucs.h>
 #include <hal_bio_ax12.h>
 
-/**
- * Dynamixel AX-12 Packet Types:
- *  - INSTRUCTION
- *  - STATUS
- *
- * Instruction Packet Spec:
- *
- * 		[0xFF] [0xFF] [ID] [LNG] [INST] [PA_1] [PA_2] ... [PA_M] [CHKSM]
- * 		  0      1     2     3     4     5      6          N-1     N
- *      [FF] [FF] [04] [02] [00] [FE]
- *        0    1    2    3    4    5
- *
- * Status Packet Spec:
- *
- * 		[0xFF] [0xFF] [ID] [LNG] [ERR] [PA_1] [PA_2] ... [PA_M] [CHKSM]
- *
- * 		FF FF 02 02 00 ~~
- */
-
 void initialize_super_dooper_ai()
 {
     halLed_sx_initialize();
@@ -47,14 +28,14 @@ void main()
 
     halBioAX12_initialize();
 
-    initialize_super_dooper_ai();
-
     _enable_interrupt();
 
     halBioAX12_setLed(1, ON);
-    halBioAX12_setLed(2, ON);
-    halBioAX12_setLed(3, ON);
-    halBioAX12_setLed(4, ON);
+    //halBioAX12_setLed(2, ON);
+    //halBioAX12_setLed(3, ON);
+    //halBioAX12_setLed(4, ON);
+
+    initialize_super_dooper_ai();
 
     while (1);
 }

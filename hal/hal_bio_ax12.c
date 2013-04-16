@@ -4,12 +4,29 @@
 
 // http://support.robotis.com/en/product/dynamixel/ax_series/dxl_ax_actuator.htm
 
+/**
+ * Dynamixel AX-12 Packet Types:
+ *  - INSTRUCTION
+ *  - STATUS
+ *
+ * Instruction Packet Spec:
+ *
+ *      [0xFF] [0xFF] [ID] [LNG] [INST] [PA_1] [PA_2] ... [PA_M] [CHKSM]
+ *        0      1     2     3     4     5      6          N-1     N
+ *      [FF] [FF] [04] [02] [00] [FE]
+ *        0    1    2    3    4    5
+ *
+ * Status Packet Spec:
+ *
+ *      [0xFF] [0xFF] [ID] [LNG] [ERR] [PA_1] [PA_2] ... [PA_M] [CHKSM]
+ *
+ *      FF FF 02 02 00 ~~
+ */
+
 #include <msp430x54xa.h>
 #include "hal_common.h"
 #include "hal_bio_ax12.h"
 #include "hal_timer.h"
-
-#define BROADCAST_ID 0xFE
 
 #define ERROR -1
 
@@ -20,16 +37,6 @@
 #define INS_REG_WRITE  0x04
 #define INS_ACTION     0x05
 #define INS_SYNC_WRITE 0x83
-
-// ERROR MASKS
-#define ERR_INST     BIT6
-#define ERR_OVERLOAD BIT5
-#define ERR_CHECKSUM BIT4
-#define ERR_RANGE    BIT3
-#define ERR_OVERHEAT BIT2
-#define ERR_ANG_LIM  BIT1
-#define ERR_IN_VOLT  BIT0
-#define ERR_NONE     0x00
 
 // EEPROM AREA
 #define MEM_MODEL_L       0x00 // Model Number (Low)
@@ -115,6 +122,8 @@ volatile int __STALL = FALSE;
 volatile int __TIMEOUT_STALL = FALSE;
 
 volatile int __BUFFER_OVERFLOW = FALSE;
+
+volatile int __REGISTER_NEXT_INSTRUCTION = FALSE;
 
 volatile int rx_index = -1;     // Index of the packet byte fed from
 
@@ -357,7 +366,16 @@ inline void setInstruction(byte inst)
 {
     clearBuffer(tx);
     clearBuffer(rx);
-    TX_PACKET_INSTRUCTION = inst;
+
+    if ( __REGISTER_NEXT_INSTRUCTION && inst == INS_WRITE_DATA )
+    {
+        TX_PACKET_INSTRUCTION = INS_REG_WRITE;
+        __REGISTER_NEXT_INSTRUCTION = FALSE;
+    }
+    else
+    {
+        TX_PACKET_INSTRUCTION = inst;
+    }
 }
 
 /**
@@ -438,6 +456,8 @@ void halBioAX12_act(int id)
 /**
  * Set either ON or OFF the LED from an actuator.
  *
+ * (WRITE_DATA INSTRUCTION)
+ *
  * @param id The identifier of the actuator.
  * @param state The state which the led should be, either ON or OFF.
  * @return The error byte from the status packet or ERROR.
@@ -457,6 +477,8 @@ int halBioAX12_setLed(int id, int state)
 
 /**
  * Set the speed and turn direction of the motor.
+ *
+ * (WRITE_DATA INSTRUCTION)
  *
  * @param id The identifier of the actuator.
  * @param speed
@@ -485,6 +507,8 @@ int halBioAX12_setMovingSpeed(int id, int speed, int direction)
  * Set the actuator to endless turn mode. This allows to have a
  * continuosly rotating wheel.
  *
+ * (WRITE_DATA INSTRUCTION)
+ *
  * @param id The identifier of the actuator.
  * @return The error byte from the status packet or ERROR.
  */
@@ -502,6 +526,22 @@ int halBioAX12_enableEndlessTurn(int id)
 }
 
 /**
+ * There are several public functions of the AX-12 noted as WRITE_DATA instruction.
+ * When called, these functions will make the actuator to update its state immediately.
+ *
+ * But if you want to use the ACTION instruction and synchronize with every actuator,
+ * for example, this function allows to indicate that the WRITE_DATA instruction should
+ * be a REG_WRITE one.
+ *
+ * After a REG_WRITE instruction has been done, it will be required to call this function
+ * again if you wish that the next function should be noted as a REG_WRITE.
+ */
+void halBioAX12_registerInstruction()
+{
+    __REGISTER_NEXT_INSTRUCTION = TRUE;
+}
+
+/**
  * Returns the current voltage used by the actuator.
  *
  * @param id The identifier of the actuator.
@@ -513,7 +553,7 @@ int halBioAX12_getVoltage(int id)
 
     setInstruction(INS_READ_DATA);
     addParameter(MEM_PRES_VOLT);
-    addParamter(0x01);
+    addParameter(0x01);
 
     result = transmit(id);
 
@@ -535,7 +575,7 @@ int halBioAX12_getTemperature(int id)
 
     setInstruction(INS_READ_DATA);
     addParameter(MEM_PRES_TEMP);
-    addParamter(0x01);
+    addParameter(0x01);
 
     result = transmit(id);
 
@@ -557,7 +597,7 @@ int halBioAX12_getPresentSpeed(int id)
 
     setInstruction(INS_READ_DATA);
     addParameter(MEM_PRES_SPEED_L);
-    addParamter(0x02);
+    addParameter(0x02);
 
     result = transmit(id);
 
