@@ -110,7 +110,7 @@
  *
  * @param _MS_ The quantity of microseconds to wait before leaving
  */
-#define __TIMEOUT(_MS_) halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, _MS_); __TIMEOUT_STALL = TRUE; while( __TIMEOUT_STALL )
+#define __TIMEOUT(_MS_) __TIMEOUT_STALL = TRUE; halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, _MS_); halTimer_a1_enableInterruptCCR0(); while( __TIMEOUT_STALL )
 
 #define TRX_BUFFER_SIZE 32
 
@@ -186,11 +186,13 @@ inline void __enable_interruptions()
  */
 void __delay(unsigned int ms)
 {
-    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
-
     __STALL = TRUE;
+    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
+    halTimer_a1_enableInterruptCCR0();
+
     while ( __STALL );
 
+    halTimer_a1_disableInterruptCCR0();
     halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
 }
 
@@ -253,16 +255,20 @@ int receive()
 
     SET_RX;
 
-    __TIMEOUT(300) // FIXME Verify timeout time when waiting for packet reception
+    //__TIMEOUT(5000) // FIXME Verify timeout time when waiting for packet reception
+    __TIMEOUT_STALL = TRUE;
+    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 5000);
+    halTimer_a1_enableInterruptCCR0();
+    while( __TIMEOUT_STALL )
     {
-        if ( IS_RX_HEADER_SET )
+        if ( ( rx[0] == 0xFF && rx[1] == 0xFF ) )
         {
             if ( rx_index >= RX_PACKET_LENGTH + 4 ) // 0xFF + 0xFF + ID + CHKSM
             {
                 if ( validate_checksum() )
                     return RX_PACKET_STATUS;
 
-                break;
+                return ERR_CHECKSUM;
             }
         }
     }
@@ -286,7 +292,7 @@ void sendByte(byte b)
 int transmit(byte id)
 {
     volatile unsigned int i = 0;
-    volatile int result;
+    volatile int result = 0;
     int packet_size = 6 + TX_PACKET_LENGTH;
 
     SET_TX; // Set P3.7 as TRANSMIT
@@ -302,11 +308,14 @@ int transmit(byte id)
         sendByte(tx[i]);
     }
 
-    __delay(20);
+    __delay(250);
 
-    result = receive();
-
-    SET_TX;
+    if ( id != AX12_BROADCAST_ID )
+    {
+        result = receive();
+        //__delay(20);
+        //SET_TX;
+    }
 
     return result;
 }
@@ -431,7 +440,7 @@ void halBioAX12_initialize()
     // Initialize timer a1. It will use SMCLK signal.
     halTimer_a1_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
 
-    __delay(100); // FIXME Verify delay time when waiting for port stabilization
+    __delay(1000);
 }
 
 /**
@@ -486,14 +495,14 @@ int halBioAX12_setLed(int id, int state)
  */
 int halBioAX12_setMovingSpeed(int id, int speed, int direction)
 {
-    int hi = 0x00;
-    int lo = 0x00;
+    byte hi = 0x00;
+    byte lo = 0x00;
 
     lo |= ( speed & 0x00ff );
 
     hi |= ( ( speed & 0x0300 ) >> 8 );
     if ( direction == AX12_CW )
-        hi |= 0x0400;
+        hi |= 0x04;
 
     setInstruction(INS_WRITE_DATA);
     addParameter(MEM_MOV_SPEED_L);

@@ -7,8 +7,8 @@
 
 #define AX12_BROADCAST_ID 0xFE
 
-#define AX12_DIR_FORWARD  8
-#define AX12_DIR_BACK     2
+#define AX12_DIR_BACK     8
+#define AX12_DIR_FORWARD  2
 #define AX12_DIR_LEFT     4
 #define AX12_DIR_RIGHT    6
 
@@ -32,6 +32,8 @@ void halBioAX12_act(int id);
 
 int halBioAX12_getTemperature(int id);
 int halBioAX12_getVoltage(int id);
+
+int halBioAX12_setMovingSpeed(int id, int speed, int direction);
 
 int halBioAX12_setLed(int id, int state);
 int halBioAX12_enableEndlessTurn(int id);

@@ -42,10 +42,11 @@
  */
 unsigned long calculate_clock_frequency_by_source(int selector)
 {
-    unsigned int d = 1;
-    unsigned int n = 0;
-    unsigned int clkref = 32768;
-    unsigned int clkrefdiv = 1;
+    unsigned long d = 1;
+    unsigned long n = 0;
+    unsigned long clkref = 32768;
+    unsigned long clkrefdiv = 1;
+    unsigned long result = 0;
 
     if ( selector == UCS_SELX_XT1CLK )
         return 32768;
@@ -55,7 +56,10 @@ unsigned long calculate_clock_frequency_by_source(int selector)
     clkrefdiv = 1 << ( UCSCTL3 & 0x7 );
 
     if ( selector == UCS_SELX_DCOCLK )
-        return d * ( n + 1 ) * ( clkref / clkrefdiv );
+    {
+        result = d * ( n + 1 ) * ( clkref / clkrefdiv );
+        return result;
+    }
     else
         return ( n + 1 ) * ( clkref / clkrefdiv );
 }
