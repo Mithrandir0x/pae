@@ -76,8 +76,8 @@ unsigned long calculate_clock_frequency_by_source(int selector)
 unsigned int calculate_ticks(int control_register, unsigned int time, unsigned long timefactor)
 {
     unsigned int ticks;
-    unsigned long tps_aclk = 0;  // Ticks Per milliSecond from ACLK
-    unsigned long tps_smclk = 0; // Ticks Per milliSecond from SMCLK
+    unsigned long tps_aclk = 0;  // Ticks per time unit from ACLK
+    unsigned long tps_smclk = 0; // Ticks per time unit from SMCLK
 
     // Calculate TPS for each clock signal
     tps_aclk = calculate_clock_frequency_by_source((UCSCTL4 & 0x0700 ) >> 8);
@@ -87,7 +87,7 @@ unsigned int calculate_ticks(int control_register, unsigned int time, unsigned l
     tps_smclk = tps_smclk / ( 1 << ( ( UCSCTL5 & 0x0070 ) >> 4 ) );
     tps_smclk = tps_smclk / timefactor;
 
-    // Check which clock signal the micro is using, and calculate the
+    // Check which clock signal the timer is using, and calculate the
     // number of ticks required for the amount of time passed by argument.
     switch ( control_register & TX_CTL_TXSSEL )
     {
@@ -113,7 +113,7 @@ void halTimer_a1_initialize(int source, int mode)
 
 /**
  * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
- * @param time Number of milliseconds to wait before interruption.
+ * @param time Number of time units to wait before interruption.
  */
 void halTimer_a1_setTimedInterruption(int ccr, unsigned int time, unsigned long timefactor)
 {

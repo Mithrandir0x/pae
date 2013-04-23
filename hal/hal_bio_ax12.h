@@ -28,10 +28,11 @@
 void halBioAX12_initialize();
 
 int halBioAX12_ping(int id);
-void halBioAX12_act(int id);
+int halBioAX12_act(int id);
 
 int halBioAX12_getTemperature(int id);
 int halBioAX12_getVoltage(int id);
+int halBioAX12_getPresentSpeed(int id);
 
 int halBioAX12_setMovingSpeed(int id, int speed, int direction);
 

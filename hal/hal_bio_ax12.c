@@ -256,15 +256,22 @@ int receive()
     SET_RX;
 
     //__TIMEOUT(5000) // FIXME Verify timeout time when waiting for packet reception
+    //TA1CCR0 = 16000;
+    //TA1CCTL0 |= BIT4;
     __TIMEOUT_STALL = TRUE;
-    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 5000);
+    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 1000);
     halTimer_a1_enableInterruptCCR0();
     while( __TIMEOUT_STALL )
     {
-        if ( ( rx[0] == 0xFF && rx[1] == 0xFF ) )
+        if ( IS_RX_HEADER_SET )
         {
             if ( rx_index >= RX_PACKET_LENGTH + 4 ) // 0xFF + 0xFF + ID + CHKSM
             {
+                //TA1CCTL0 &= ~BIT4;
+                //TA1CCR0 = 0;
+                halTimer_a1_disableInterruptCCR0();
+                halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+
                 if ( validate_checksum() )
                     return RX_PACKET_STATUS;
 
@@ -311,41 +318,11 @@ int transmit(byte id)
     __delay(250);
 
     if ( id != AX12_BROADCAST_ID )
-    {
         result = receive();
-        //__delay(20);
-        //SET_TX;
-    }
+
+    SET_TX;
 
     return result;
-}
-
-/**
- * This function transmit the current state of the transmit buffer, but it
- * won't wait for any response.
- *
- * @param id Identifier of the actuator
- */
-void lazy_transmit(byte id)
-{
-    volatile unsigned int i = 0;
-    volatile int result;
-    int packet_size = 6 + TX_PACKET_LENGTH;
-
-    SET_TX; // Set P3.7 as TRANSMIT
-
-    tx[0] = 0xFF;                     // Incoming packet Header
-    tx[1] = 0xFF;                     // Incoming packet Header
-    tx[2] = id;                       // AX12 Actuator Identifier
-    TX_PACKET_LENGTH += 2;            // Length of the packet to be sent
-    tx[packet_size - 1] = checksum(); // Checksum
-
-    for ( i = 0 ; i < packet_size ; i++ )
-    {
-        sendByte(tx[i]);
-    }
-
-    __delay(20);
 }
 
 /**
@@ -456,10 +433,10 @@ int halBioAX12_ping(int id)
     return transmit(id);
 }
 
-void halBioAX12_act(int id)
+int halBioAX12_act(int id)
 {
     setInstruction(INS_ACTION);
-    lazy_transmit(id);
+    return transmit(id);
 }
 
 /**
@@ -499,8 +476,8 @@ int halBioAX12_setMovingSpeed(int id, int speed, int direction)
     byte lo = 0x00;
 
     lo |= ( speed & 0x00ff );
-
     hi |= ( ( speed & 0x0300 ) >> 8 );
+
     if ( direction == AX12_CW )
         hi |= 0x04;
 
