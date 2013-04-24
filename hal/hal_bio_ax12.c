@@ -102,24 +102,11 @@
 
 #define IS_RX_HEADER_SET ( rx[0] == 0xFF && rx[1] == 0xFF )
 
-/**
- * This macro allows to surround blocks of code with a time-out mechanism. It's very
- * similar to the "__delay" method, but it works a bit different. Instead of making
- * the user-code to wait for the timer's interruption, it allows the user to define
- * its own code to be executed.
- *
- * @param _MS_ The quantity of microseconds to wait before leaving
- */
-#define __TIMEOUT(_MS_) __TIMEOUT_STALL = TRUE; halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, _MS_); halTimer_a1_enableInterruptCCR0(); while( __TIMEOUT_STALL )
-
 #define TRX_BUFFER_SIZE 32
 
 // Packet Buffers
 byte tx[TRX_BUFFER_SIZE];
 byte rx[TRX_BUFFER_SIZE];
-
-
-volatile unsigned int __n__ = 0;
 
 volatile int __STALL = FALSE;
 volatile int __TIMEOUT_STALL = FALSE;
@@ -193,11 +180,11 @@ inline void __enable_interruptions()
 void __delay(unsigned int ms)
 {
     __STALL = TRUE;
-    TA1R = 0;
     //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
     //halTimer_a1_enableInterruptCCR0();
-    TA1CCR0 = 16 * ms;
     //TA1CCTL0 |= BIT4;
+    TA1R = 0;
+    TA1CCR0 = 16 * ms;
 
     while ( __STALL );
 
@@ -271,15 +258,14 @@ int receive()
 
     SET_RX;
 
-    //__TIMEOUT(5000) // FIXME Verify timeout time when waiting for packet reception
     //TA1CCR0 = 16000;
     //TA1CCTL0 |= BIT4;
-    __TIMEOUT_STALL = TRUE;
     //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 1000);
-    TA1R = 0;
     //halTimer_a1_enableInterruptCCR0();
-    TA1CCR0 = 16 * 1000;
     //TA1CCTL0 |= BIT4;
+    __TIMEOUT_STALL = TRUE;
+    TA1R = 0;
+    TA1CCR0 = 16 * 1000;
     while( __TIMEOUT_STALL )
     {
         if ( IS_RX_HEADER_SET )
