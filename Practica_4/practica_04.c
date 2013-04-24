@@ -13,6 +13,11 @@ volatile int __STOP = FALSE;
 volatile int __TURN_LEFT = FALSE;
 volatile int __TURN_RIGHT = FALSE;
 
+volatile int __flag_m1 = 0;
+volatile int __flag_m2 = 0;
+volatile int __flag_m3 = 0;
+volatile int __flag_m4 = 0;
+
 void initialize_super_dooper_ai()
 {
     halLed_sx_initialize();
@@ -51,15 +56,19 @@ void main()
     initialize_super_dooper_ai();
 
     flag = halBioAX12_enableEndlessTurn(1);
+    __flag_m1 = flag;
     halLed_rx_setLed(LED_R1, flag);
 
     flag = halBioAX12_enableEndlessTurn(2);
+    __flag_m2 = flag;
     halLed_rx_setLed(LED_R2, flag);
 
     flag = halBioAX12_enableEndlessTurn(3);
+    __flag_m3 = flag;
     halLed_rx_setLed(LED_R3, flag);
 
     flag = halBioAX12_enableEndlessTurn(4);
+    __flag_m4 = flag;
     halLed_rx_setLed(LED_R4, flag);
 
     while (1)
@@ -67,23 +76,29 @@ void main()
         if ( __MOVE_FORWARD )
         {
             __MOVE_FORWARD = FALSE;
+            halLed_rx_setLed(LED_RX_ALL, OFF);
 
             flag = halBioAX12_setMovingSpeed(1, 256, AX12_CW);
+            __flag_m1 = flag;
             halLed_rx_setLed(LED_R1, flag);
 
             flag = halBioAX12_setMovingSpeed(2, 256, AX12_CW);
+            __flag_m2 = flag;
             halLed_rx_setLed(LED_R2, flag);
 
             flag = halBioAX12_setMovingSpeed(3, 256, AX12_CCW);
+            __flag_m3 = flag;
             halLed_rx_setLed(LED_R3, flag);
 
             flag = halBioAX12_setMovingSpeed(4, 256, AX12_CCW);
+            __flag_m4 = flag;
             halLed_rx_setLed(LED_R4, flag);
         }
 
         if ( __MOVE_BACKWARD )
         {
             __MOVE_BACKWARD = FALSE;
+            halLed_rx_setLed(LED_RX_ALL, OFF);
 
             flag = halBioAX12_setMovingSpeed(1, 256, AX12_CCW);
             halLed_rx_setLed(LED_R1, flag);
@@ -101,23 +116,29 @@ void main()
         if ( __STOP )
         {
             __STOP = FALSE;
+            halLed_rx_setLed(LED_RX_ALL, OFF);
 
             flag = halBioAX12_setMovingSpeed(1, 0, AX12_CW);
+            __flag_m1 = flag;
             halLed_rx_setLed(LED_R1, flag);
 
             flag = halBioAX12_setMovingSpeed(2, 0, AX12_CW);
+            __flag_m2 = flag;
             halLed_rx_setLed(LED_R2, flag);
 
             flag = halBioAX12_setMovingSpeed(3, 0, AX12_CCW);
+            __flag_m3 = flag;
             halLed_rx_setLed(LED_R3, flag);
 
             flag = halBioAX12_setMovingSpeed(4, 0, AX12_CCW);
+            __flag_m4 = flag;
             halLed_rx_setLed(LED_R4, flag);
         }
 
         if ( __TURN_LEFT )
         {
             __TURN_LEFT = FALSE;
+            halLed_rx_setLed(LED_RX_ALL, OFF);
 
             flag = halBioAX12_setMovingSpeed(1, 256, AX12_CW);
             halLed_rx_setLed(LED_R1, flag);
@@ -135,6 +156,7 @@ void main()
         if ( __TURN_RIGHT )
         {
             __TURN_RIGHT = FALSE;
+            halLed_rx_setLed(LED_RX_ALL, OFF);
 
             flag = halBioAX12_setMovingSpeed(1, 256, AX12_CCW);
             halLed_rx_setLed(LED_R1, flag);

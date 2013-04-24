@@ -118,6 +118,9 @@
 byte tx[TRX_BUFFER_SIZE];
 byte rx[TRX_BUFFER_SIZE];
 
+
+volatile unsigned int __n__ = 0;
+
 volatile int __STALL = FALSE;
 volatile int __TIMEOUT_STALL = FALSE;
 
@@ -161,7 +164,10 @@ __interrupt void update_timeout_stall_state()
     if ( __TIMEOUT_STALL )
     {
         __TIMEOUT_STALL = FALSE;
-        halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+        //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+        TA1R = 0;
+        TA1CCR0 = 0;
+        //TA1CCTL0 &= ~BIT4;
     }
 
     halTimer_a1_enableInterruptCCR0();
@@ -187,13 +193,19 @@ inline void __enable_interruptions()
 void __delay(unsigned int ms)
 {
     __STALL = TRUE;
-    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
-    halTimer_a1_enableInterruptCCR0();
+    TA1R = 0;
+    //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
+    //halTimer_a1_enableInterruptCCR0();
+    TA1CCR0 = 16 * ms;
+    //TA1CCTL0 |= BIT4;
 
     while ( __STALL );
 
-    halTimer_a1_disableInterruptCCR0();
-    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+    //halTimer_a1_disableInterruptCCR0();
+    //TA1CCTL0 &= ~BIT4;
+    //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+    TA1R = 0;
+    TA1CCR0 = 0;
 }
 
 /**
@@ -245,11 +257,15 @@ int validate_checksum()
         checksum += rx[i];
     }
 
-    return ( ~checksum == RX_PACKET_CHKSUM );
+    checksum = ~checksum;
+
+    return ( checksum == RX_PACKET_CHKSUM );
 }
 
 int receive()
 {
+    volatile int comparison_checksum = FALSE;
+
     rx_index = 0;
     __BUFFER_OVERFLOW = FALSE;
 
@@ -259,8 +275,11 @@ int receive()
     //TA1CCR0 = 16000;
     //TA1CCTL0 |= BIT4;
     __TIMEOUT_STALL = TRUE;
-    halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 1000);
-    halTimer_a1_enableInterruptCCR0();
+    //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 1000);
+    TA1R = 0;
+    //halTimer_a1_enableInterruptCCR0();
+    TA1CCR0 = 16 * 1000;
+    //TA1CCTL0 |= BIT4;
     while( __TIMEOUT_STALL )
     {
         if ( IS_RX_HEADER_SET )
@@ -269,10 +288,15 @@ int receive()
             {
                 //TA1CCTL0 &= ~BIT4;
                 //TA1CCR0 = 0;
-                halTimer_a1_disableInterruptCCR0();
-                halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+                //halTimer_a1_disableInterruptCCR0();
+                //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, 0);
+                TA1R = 0;
+                TA1CCR0 = 0;
+                //TA1CCTL0 &= ~BIT4;
 
-                if ( validate_checksum() )
+                comparison_checksum = validate_checksum();
+
+                if ( comparison_checksum )
                     return RX_PACKET_STATUS;
 
                 return ERR_CHECKSUM;
@@ -416,6 +440,7 @@ void halBioAX12_initialize()
 
     // Initialize timer a1. It will use SMCLK signal.
     halTimer_a1_initialize(TIMER_CLKSRC_SMCLK, TIMER_MODE_UP);
+    TA1CCTL0 |= BIT4;
 
     __delay(1000);
 }
