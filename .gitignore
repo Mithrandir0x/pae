@@ -16,8 +16,11 @@
 *.out
 *.app
 
-#CCS Thingies
+# CCS Thingies
 .metadata
 .settings
 Debug
 dvt
+
+# Stoopid Projects
+Task_Mutex_Example
