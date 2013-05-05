@@ -4,6 +4,7 @@
  * @file hal_led.c
  */
 
+#include <msp430x54xa.h>
 #include "hal_common.h"
 #include "hal_led.h"
 

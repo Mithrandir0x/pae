@@ -7,8 +7,6 @@
 #ifndef _HAL_TIMER_H_
 #define _HAL_TIMER_H_
 
-#include <msp430x54xa.h>
-
 #define TIMER_CNT_16 0                 // 0xFFFF
 #define TIMER_CNT_12 BIT11             // 0xFFF
 #define TIMER_CNT_10 BIT12             // 0x3FF

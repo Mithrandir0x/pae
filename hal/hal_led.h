@@ -5,8 +5,6 @@
 #ifndef _HAL_LED_
 #define _HAL_LED_
 
-#include <msp430x54xa.h>
-
 #define LED_RED    BIT0 // P1.0
 #define LED_YELLOW BIT1 // P1.1
 #define LED_SX_ALL ( BIT1 | BIT0 )

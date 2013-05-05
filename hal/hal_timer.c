@@ -39,6 +39,7 @@
  *
  * @param selector This value is used to know from which source does the clock come from.
  * @return The clock source frequency.
+ * @deprecated
  */
 unsigned long calculate_clock_frequency_by_source(int selector)
 {
@@ -72,6 +73,7 @@ unsigned long calculate_clock_frequency_by_source(int selector)
  * @param timefactor       The time factor that allows set an interruption based on milliseconds (TIME_FACTOR_MILLI)
  *                         or microseconds (TIME_FACTOR_MICRO).
  * @return The value to count up to by a timer before sending an interruption.
+ * @deprecated
  */
 unsigned int calculate_ticks(int control_register, unsigned int time, unsigned long timefactor)
 {
