@@ -34,7 +34,7 @@ void test_motors_on_program_start()
 
     motor_setSpeed(256);
 
-    halBioAX12_initialize();
+    halBioCom_initialize();
 }
 
 void test_motors_on_program_update()
