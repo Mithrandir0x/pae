@@ -18,7 +18,7 @@
 #define __KERNEL_MENU_EXECUTING_PROGRAM ( __kernel_menu_programs[__kernel_menu_executingProgram] )
 
 typedef struct {
-    char tag[13];
+    char tag[12];
     F_PTR onButtonPressedCallback;
     F_PTR onTimerA1InterruptCallback;
     F_PTR onTimerB0InterruptCallback;
@@ -30,25 +30,28 @@ typedef struct {
 unsigned int __kernel_menu_storedPrograms = 0;
 unsigned int __kernel_menu_selectedProgram = 0;
 
+byte __kernel_menu_currentTotalPages = 0;
+
 int __kernel_menu_executingProgram = KERNEL_MENU_PROGRAM_ID;
 
 int __kernel_menu_updateTick = FALSE;
 int __kernel_menu_updateMenu = FALSE;
+int __kernel_menu_initializeProgram = FALSE;
 
 PR_CTX __kernel_menu_programs[__KERNEL_MENU_MAX_PROGRAMS + 1];
 char __lcd_buffer[17];
 
 void renderTickle()
 {
-    halLcdPrintLineCol(" ", ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) - 1, 1, OVERWRITE_TEXT);
-    halLcdPrintLineCol("x", __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE, 1, INVERT_TEXT);
+    halLcdPrintLineCol(" ", ( ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) - 1 ) + 2, 1, OVERWRITE_TEXT);
+    halLcdPrintLineCol("x", ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 2, 1, INVERT_TEXT);
 }
 
 void renderMenu()
 {
     int i = 0;
     int page = __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
-    int lastProgram = __kernel_menu_storedPrograms + 4;
+    int lastProgram = __kernel_menu_storedPrograms;
 
     if ( lastProgram >= __KERNEL_MENU_MAX_PROGRAMS )
         lastProgram = __KERNEL_MENU_MAX_PROGRAMS;
@@ -57,8 +60,8 @@ void renderMenu()
     halLcdPrintLineCol("BOT MK1", 0, 1, OVERWRITE_TEXT);
 
     {   // Write program page number XX/XX
-        sprintf(__lcd_buffer, "%02d:%02d", page + 1, __KERNEL_MENU_MAX_PAGES);
-        halLcdPrintLineCol(__lcd_buffer, 0, 11, OVERWRITE_TEXT);
+        sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_currentTotalPages + 1);
+        halLcdPrintLineCol(__lcd_buffer, 0, 13, OVERWRITE_TEXT);
     }
 
     {   // Write programs available at current page
@@ -69,7 +72,7 @@ void renderMenu()
     }
 
     // Write currently selected program
-    halLcdPrintLineCol("x", __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE, 1, INVERT_TEXT);
+    halLcdPrintLineCol("x", __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE + 2, 1, INVERT_TEXT);
 }
 
 void onMenuShutdown()
@@ -79,22 +82,23 @@ void onMenuShutdown()
 
 void onButtonPressed()
 {
-    F_PTR callback;
-    int page = __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+    int page;
+
+    page = __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
 
     switch ( P2IFG )
     {
         case JOYSTICK_RIGHT:
-            if ( page < __KERNEL_MENU_MAX_PAGES )
+            if ( page < __KERNEL_MENU_MAX_PAGES && page < __kernel_menu_currentTotalPages )
             {
-                __kernel_menu_selectedProgram = ( page - 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+                __kernel_menu_selectedProgram = ( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) - 1;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
         case JOYSTICK_LEFT:
             if ( page > 0 )
             {
-                __kernel_menu_selectedProgram = ( page + 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+                __kernel_menu_selectedProgram = ( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 1;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
@@ -105,7 +109,7 @@ void onButtonPressed()
                 __kernel_menu_updateTick = TRUE;
             }
 
-            if ( page != __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
+            if ( page != __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
                 __kernel_menu_updateMenu = TRUE;
             break;
         case JOYSTICK_DOWN:
@@ -115,7 +119,7 @@ void onButtonPressed()
                 __kernel_menu_updateTick = TRUE;
             }
 
-            if ( page != __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
+            if ( page != __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
                 __kernel_menu_updateMenu = TRUE;
             break;
         case JOYSTICK_CENTER:
@@ -123,10 +127,8 @@ void onButtonPressed()
             {
                 onMenuShutdown();
 
-                callback = __kernel_menu_programs[__kernel_menu_selectedProgram].onProgramInitializeCallback;
-                if ( callback != NULL ) callback();
-
                 __kernel_menu_executingProgram = __kernel_menu_selectedProgram;
+                __kernel_menu_initializeProgram = TRUE;
             }
             break;
         case BUTTON_S1:
@@ -138,6 +140,8 @@ void onButtonPressed()
 
 void onMenuUpdate()
 {
+    F_PTR callback;
+
     if ( __kernel_menu_updateMenu )
     {
         __kernel_menu_updateMenu = FALSE;
@@ -148,6 +152,14 @@ void onMenuUpdate()
         __kernel_menu_updateTick = FALSE;
         renderTickle();
     }
+
+    if ( __kernel_menu_initializeProgram )
+    {
+        callback = __kernel_menu_programs[__kernel_menu_selectedProgram].onProgramInitializeCallback;
+        if ( callback != NULL ) callback();
+
+        __kernel_menu_initializeProgram = FALSE;
+    }
 }
 
 /**
@@ -156,33 +168,26 @@ void onMenuUpdate()
 void kerMenu_bootstrap()
 {
     int i;
-    PR_CTX program = __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID];
-
-    halLcdSetBackLight(0x64);
-    halLcdSetContrast(0x1E);
 
     // Initialize every program slot
     for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS + 1 ; i++ )
     {
-        program = __kernel_menu_programs[i];
-        sprintf(program.tag, "%13c", "");
-        program.onButtonPressedCallback = NULL;
-        program.onTimerA1InterruptCallback = NULL;
-        program.onTimerB0InterruptCallback = NULL;
-        program.onProgramInitializeCallback = NULL;
-        program.onProgramUpdateCallback = NULL;
-        program.onProgramStopCallback = NULL;
+        __kernel_menu_programs[i].onButtonPressedCallback = 0;
+        sprintf(__kernel_menu_programs[i].tag, "%s", "            ");
+        __kernel_menu_programs[i].onTimerA1InterruptCallback = NULL;
+        __kernel_menu_programs[i].onTimerB0InterruptCallback = NULL;
+        __kernel_menu_programs[i].onProgramInitializeCallback = NULL;
+        __kernel_menu_programs[i].onProgramUpdateCallback = NULL;
+        __kernel_menu_programs[i].onProgramStopCallback = NULL;
     }
 
-    program = __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID];
-
-    sprintf(program.tag, "%13c", "MENU");
-    program.onButtonPressedCallback = &onButtonPressed;
-    program.onTimerA1InterruptCallback = NULL;
-    program.onTimerB0InterruptCallback = NULL;
-    program.onProgramInitializeCallback = NULL;
-    program.onProgramUpdateCallback = &onMenuUpdate;
-    program.onProgramStopCallback = &onMenuShutdown;
+    sprintf(__kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].tag, "%s", "MENU        ");
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onButtonPressedCallback = &onButtonPressed;
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onTimerA1InterruptCallback = NULL;
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onTimerB0InterruptCallback = NULL;
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onProgramInitializeCallback = NULL;
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onProgramUpdateCallback = &onMenuUpdate;
+    __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onProgramStopCallback = &onMenuShutdown;
 
     __kernel_menu_updateMenu = TRUE;
 }
@@ -205,20 +210,19 @@ void kerMenu_registerProgram(char* tag,
         F_PTR onButtonPressedCallback,
         F_PTR onTimerA1InterruptCallback,
         F_PTR onTimerB0InterruptCallback) {
-    PR_CTX newProgram;
 
     if ( __kernel_menu_storedPrograms < __KERNEL_MENU_MAX_PROGRAMS )
     {
-        sprintf(newProgram.tag, "%13c", tag);
-        newProgram.onButtonPressedCallback = onButtonPressedCallback;
-        newProgram.onTimerA1InterruptCallback = onTimerA1InterruptCallback;
-        newProgram.onTimerB0InterruptCallback = onTimerB0InterruptCallback;
-        newProgram.onProgramInitializeCallback = onProgramInitializeCallback;
-        newProgram.onProgramUpdateCallback = onProgramUpdateCallback;
-        newProgram.onProgramStopCallback = onProgramStopCallback;
+        sprintf(__kernel_menu_programs[__kernel_menu_storedPrograms].tag, "%s", tag);
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onButtonPressedCallback = onButtonPressedCallback;
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onTimerA1InterruptCallback = onTimerA1InterruptCallback;
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onTimerB0InterruptCallback = onTimerB0InterruptCallback;
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramInitializeCallback = onProgramInitializeCallback;
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramUpdateCallback = onProgramUpdateCallback;
+        __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramStopCallback = onProgramStopCallback;
 
-        __kernel_menu_programs[__kernel_menu_storedPrograms] = newProgram;
         __kernel_menu_storedPrograms++;
+        __kernel_menu_currentTotalPages = __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
     }
 }
 

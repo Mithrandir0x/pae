@@ -115,7 +115,7 @@ void test_motors_on_button_pressed()
 
 void test_motors_bootstrap()
 {
-    kerMenu_registerProgram("test_motors", &test_motors_on_program_start,
+    kerMenu_registerProgram("test motors", &test_motors_on_program_start,
             &test_motors_on_program_update, &test_motors_on_program_stop,
             &test_motors_on_button_pressed, &test_motors_on_timer_a1_isr,
             &test_motors_on_timer_b0_isr);

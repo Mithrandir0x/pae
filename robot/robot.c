@@ -8,6 +8,9 @@
 #include "programs/diag_sensor/diag_sensor.h"
 #include "programs/test_motors/test_motors.h"
 
+unsigned char lcd_contrast  = 0x64;
+unsigned char lcd_backlight = 30;
+
 void main()
 {
     F_PTR callback;
@@ -38,13 +41,16 @@ void main()
 
     halLcdInit();
     halLcdBackLightInit();
+    halLcdSetBackLight(lcd_backlight);
+    halLcdSetContrast(lcd_contrast);
+    halLcdClearScreen();
 
     _enable_interrupt();
 
     kerMenu_bootstrap();
 
     diag_sensor_bootstrap();
-    test_motors_bootstrap();
+    //test_motors_bootstrap();
 
     while (1)
     {
@@ -60,12 +66,22 @@ void main()
 #pragma vector = PORT2_VECTOR
 __interrupt void __PORT2_ISR()
 {
-    F_PTR callback = kerMenu_getOnButtonPressedCallback();
+    F_PTR callback;
+
+    halButtons_setInterruptions(BUTTON_ALL, OFF);
+    halJoystick_setInterruptions(JOYSTICK_ALL, OFF);
+
+    callback = kerMenu_getOnButtonPressedCallback();
 
     if ( callback != NULL )
     {
         callback();
     }
+
+    P2IFG = 0;
+
+    halButtons_setInterruptions(BUTTON_ALL, ON);
+    halJoystick_setInterruptions(JOYSTICK_ALL, ON);
 }
 
 #pragma vector = TIMER1_A0_VECTOR

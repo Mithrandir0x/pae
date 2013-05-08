@@ -9,16 +9,22 @@
 int __diag_sensor_updateData = FALSE;
 int __diag_sensor_pollMode = DIAG_SENSOR_IR;
 
+byte __diag_sensor_stoopidCounter = 0;
+
 extern char __lcd_buffer[17];
 
 void diag_sensor_on_program_start()
 {
-    halLcdPrintLine("SENSOR DIAGNOSTIC", 0, INVERT_TEXT);
+    halLcdPrintLine("SENSOR DIAG.", 0, INVERT_TEXT);
+
+    halTimer_a1_enableInterruptCCR0();
 
     halBioCom_initialize();
 
     __diag_sensor_updateData = FALSE;
     __diag_sensor_pollMode = DIAG_SENSOR_IR;
+
+    TB0CCR0 = 32 * 25; // Each 25 milliseconds it will update the window state
 }
 
 void diag_sensor_on_program_update()
@@ -75,7 +81,7 @@ void diag_sensor_on_button_pressed()
 
 void diag_sensor_bootstrap()
 {
-    kerMenu_registerProgram("diag_sensor", &diag_sensor_on_program_start,
+    kerMenu_registerProgram("diag sensor", &diag_sensor_on_program_start,
             &diag_sensor_on_program_update, &diag_sensor_on_program_stop,
             &diag_sensor_on_button_pressed, &diag_sensor_on_timer_a1_isr,
             &diag_sensor_on_timer_b0_isr);
