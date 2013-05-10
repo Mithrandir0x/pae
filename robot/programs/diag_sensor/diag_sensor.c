@@ -9,11 +9,9 @@
 int __diag_sensor_updateData = FALSE;
 int __diag_sensor_pollMode = DIAG_SENSOR_IR;
 
-byte __diag_sensor_stoopidCounter = 0;
+char __lcd_buffer[17];
 
-extern char __lcd_buffer[17];
-
-void diag_sensor_on_program_start()
+static void on_program_start()
 {
     halLcdPrintLine("SENSOR DIAG.", 0, INVERT_TEXT);
 
@@ -27,7 +25,7 @@ void diag_sensor_on_program_start()
     TB0CCR0 = 32 * 25; // Each 25 milliseconds it will update the window state
 }
 
-void diag_sensor_on_program_update()
+static void on_program_update()
 {
     SENSOR_DATA data;
 
@@ -49,25 +47,28 @@ void diag_sensor_on_program_update()
     }
 }
 
-void diag_sensor_on_program_stop()
+static void on_program_stop()
 {
     halBioCom_shutdown();
 }
 
-void diag_sensor_on_timer_b0_isr()
+static void on_timer_b0_isr()
 {
     __diag_sensor_updateData = TRUE;
 }
 
-void diag_sensor_on_timer_a1_isr()
+static void on_timer_a1_isr()
 {
     halBioCom_isr_timer_update();
 }
 
-void diag_sensor_on_button_pressed()
+static void on_button_pressed()
 {
     switch ( P2IE )
     {
+        case JOYSTICK_CENTER:
+            kerMenu_exitProgram();
+            break;
         case BUTTON_S1:
             __diag_sensor_pollMode = DIAG_SENSOR_IR;
             break;
@@ -81,8 +82,8 @@ void diag_sensor_on_button_pressed()
 
 void diag_sensor_bootstrap()
 {
-    kerMenu_registerProgram("diag sensor", &diag_sensor_on_program_start,
-            &diag_sensor_on_program_update, &diag_sensor_on_program_stop,
-            &diag_sensor_on_button_pressed, &diag_sensor_on_timer_a1_isr,
-            &diag_sensor_on_timer_b0_isr);
+    kerMenu_registerProgram("diag sensor", &on_program_start,
+            &on_program_update, &on_program_stop,
+            &on_button_pressed, &on_timer_a1_isr,
+            &on_timer_b0_isr);
 }

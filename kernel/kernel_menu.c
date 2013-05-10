@@ -27,10 +27,9 @@ typedef struct {
     F_PTR onProgramStopCallback;
 } PR_CTX; // Program Context
 
-unsigned int __kernel_menu_storedPrograms = 0;
-unsigned int __kernel_menu_selectedProgram = 0;
-
-byte __kernel_menu_currentTotalPages = 0;
+byte __kernel_menu_totalPages = 0;
+byte __kernel_menu_storedPrograms = 0;
+byte __kernel_menu_selectedProgram = 0;
 
 int __kernel_menu_executingProgram = KERNEL_MENU_PROGRAM_ID;
 
@@ -39,66 +38,72 @@ int __kernel_menu_updateMenu = FALSE;
 int __kernel_menu_initializeProgram = FALSE;
 
 PR_CTX __kernel_menu_programs[__KERNEL_MENU_MAX_PROGRAMS + 1];
-char __lcd_buffer[17];
 
-void renderTickle()
+static void clearTickles()
 {
-    halLcdPrintLineCol(" ", ( ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) - 1 ) + 2, 1, OVERWRITE_TEXT);
+    byte i;
+
+    for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ; i++ )
+    {
+        halLcdPrintLineCol(" ", i + 2, 1, OVERWRITE_TEXT);
+    }
+}
+
+static void renderTickle()
+{
+    clearTickles();
     halLcdPrintLineCol("x", ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 2, 1, INVERT_TEXT);
 }
 
 void renderMenu()
 {
-    int i = 0;
-    int page = __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
-    int lastProgram = __kernel_menu_storedPrograms;
-
-    if ( lastProgram >= __KERNEL_MENU_MAX_PROGRAMS )
-        lastProgram = __KERNEL_MENU_MAX_PROGRAMS;
+    byte i;
+    byte page = __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+    char __lcd_buffer[17];
 
     halLcdClearScreen();
     halLcdPrintLineCol("BOT MK1", 0, 1, OVERWRITE_TEXT);
 
-    {   // Write program page number XX/XX
-        sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_currentTotalPages + 1);
+    {   // Write program page number X/X
+        sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_totalPages + 1);
         halLcdPrintLineCol(__lcd_buffer, 0, 13, OVERWRITE_TEXT);
     }
 
     {   // Write programs available at current page
-        for ( i = 0 ; i < lastProgram ; i++ )
+        for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE && i < __kernel_menu_storedPrograms ; i++ )
         {
             halLcdPrintLineCol(__kernel_menu_programs[page + i].tag, i + 2, 3, OVERWRITE_TEXT);
         }
     }
 
     // Write currently selected program
-    halLcdPrintLineCol("x", __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE + 2, 1, INVERT_TEXT);
+    renderTickle();
 }
 
-void onMenuShutdown()
+static void onMenuShutdown()
 {
     halLcdClearScreen();
 }
 
-void onButtonPressed()
+static void onButtonPressed()
 {
-    int page;
+    byte page;
 
     page = __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
 
     switch ( P2IFG )
     {
         case JOYSTICK_RIGHT:
-            if ( page < __KERNEL_MENU_MAX_PAGES && page < __kernel_menu_currentTotalPages )
+            if ( page < __KERNEL_MENU_MAX_PAGES && page < __kernel_menu_totalPages )
             {
-                __kernel_menu_selectedProgram = ( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) - 1;
+                __kernel_menu_selectedProgram = ( page - 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
         case JOYSTICK_LEFT:
             if ( page > 0 )
             {
-                __kernel_menu_selectedProgram = ( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 1;
+                __kernel_menu_selectedProgram = ( page + 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
@@ -109,7 +114,7 @@ void onButtonPressed()
                 __kernel_menu_updateTick = TRUE;
             }
 
-            if ( page != __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
+            if ( page != ( __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) )
                 __kernel_menu_updateMenu = TRUE;
             break;
         case JOYSTICK_DOWN:
@@ -119,7 +124,7 @@ void onButtonPressed()
                 __kernel_menu_updateTick = TRUE;
             }
 
-            if ( page != __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE )
+            if ( page != ( __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) )
                 __kernel_menu_updateMenu = TRUE;
             break;
         case JOYSTICK_CENTER:
@@ -138,7 +143,7 @@ void onButtonPressed()
     }
 }
 
-void onMenuUpdate()
+static void onMenuUpdate()
 {
     F_PTR callback;
 
@@ -167,7 +172,7 @@ void onMenuUpdate()
  */
 void kerMenu_bootstrap()
 {
-    int i;
+    byte i;
 
     // Initialize every program slot
     for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS + 1 ; i++ )
@@ -222,7 +227,7 @@ void kerMenu_registerProgram(char* tag,
         __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramStopCallback = onProgramStopCallback;
 
         __kernel_menu_storedPrograms++;
-        __kernel_menu_currentTotalPages = __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+        __kernel_menu_totalPages = __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
     }
 }
 

@@ -8,11 +8,13 @@
 #include "programs/diag_sensor/diag_sensor.h"
 #include "programs/test_motors/test_motors.h"
 
-unsigned char lcd_contrast  = 0x64;
-unsigned char lcd_backlight = 30;
+// Allow other programs to reuse LCD write buffer
+extern char __lcd_buffer[17];
 
 void main()
 {
+    byte lcd_contrast  = 0x64;
+    byte lcd_backlight = 30;
     F_PTR callback;
 
     WDTCTL = WDTPW | WDTHOLD;   // Stop watchdog timer (good dog)

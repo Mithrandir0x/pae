@@ -13,7 +13,7 @@ volatile int __TEST_MOTORS_STOP = FALSE;
 volatile int __TEST_MOTORS_TURN_LEFT = FALSE;
 volatile int __TEST_MOTORS_TURN_RIGHT = FALSE;
 
-void test_motors_on_program_start()
+static void test_motors_on_program_start()
 {
     _disable_interrupt();
 
@@ -37,7 +37,7 @@ void test_motors_on_program_start()
     halBioCom_initialize();
 }
 
-void test_motors_on_program_update()
+static void test_motors_on_program_update()
 {
     if ( __TEST_MOTORS_MOVE_FORWARD )
     {
@@ -70,7 +70,7 @@ void test_motors_on_program_update()
     }
 }
 
-void test_motors_on_program_stop()
+static void test_motors_on_program_stop()
 {
     motor_stop();
     motor_setSpeed(0);
@@ -78,17 +78,17 @@ void test_motors_on_program_stop()
     halBioCom_shutdown();
 }
 
-void test_motors_on_timer_b0_isr()
+static void test_motors_on_timer_b0_isr()
 {
     halLed_sx_toggleLed(LED_SX_ALL);
 }
 
-void test_motors_on_timer_a1_isr()
+static void test_motors_on_timer_a1_isr()
 {
     halBioCom_isr_timer_update();
 }
 
-void test_motors_on_button_pressed()
+static void test_motors_on_button_pressed()
 {
     switch ( P2IFG )
     {
