@@ -71,12 +71,12 @@ void halBioCom_isr_timer_update()
 
 
 // Definition of some internal functions
-inline void __disable_interruptions()
+inline static void __disable_interruptions()
 {
     UCA0IE &= ~UCRXIE;
 }
 
-inline void __enable_interruptions()
+inline static void __enable_interruptions()
 {
     UCA0IE |= UCRXIE;
 }
@@ -86,7 +86,7 @@ inline void __enable_interruptions()
  *
  * @param ms The amount of microseconds to wait before executing anything else.
  */
-void __delay(unsigned int ms)
+static void __delay(unsigned int ms)
 {
     __STALL = TRUE;
     //halTimer_a1_setCCRMicroTimedInterruption(TIMER_CCR0, ms);
@@ -109,7 +109,7 @@ void __delay(unsigned int ms)
  *
  * @param buffer Pointer to a buffer to be cleared (either "tx" or "rx")
  */
-void clearBuffer(byte *buffer)
+static void clearBuffer(byte *buffer)
 {
     int i;
     for ( i = 0 ; i < TRX_BUFFER_SIZE ; i++ )
@@ -123,7 +123,7 @@ void clearBuffer(byte *buffer)
  *
  * @return The checksum of the transmit buffer packet.
  */
-byte checksum()
+static byte checksum()
 {
     int i;
     int n = 3 + TX_PACKET_LENGTH; // ID + LENGTH + INSTRUCTION + ( PARAM_1 + ··· + PARAM_N )
@@ -142,7 +142,7 @@ byte checksum()
  *
  * @return FALSE if invalid checksum, otherwise any value.
  */
-int validate_checksum()
+static int validate_checksum()
 {
     int i = 2;
     int n = 3 + RX_PACKET_LENGTH;
@@ -167,7 +167,7 @@ int validate_checksum()
  * @return ERROR if timeout, ERR_CHECKSUM if packet received but checksum failed,
  *         otherwise status packet error byte.
  */
-int receive()
+static int receive()
 {
     volatile int comparison_checksum = FALSE;
 
@@ -211,7 +211,7 @@ int receive()
     return ERROR;
 }
 
-void sendByte(byte b)
+static void sendByte(byte b)
 {
     while ( !(UCA0IFG & UCTXIFG) ); // Wait for transmit buffer to be ready
     UCA0TXBUF = b;  // Fill the transmit buffer
@@ -395,7 +395,9 @@ void halBioCom_shutdown()
     __STALL = FALSE;
     __TIMEOUT_STALL = FALSE;
     __BUFFER_OVERFLOW = FALSE;
+    __REGISTER_NEXT_INSTRUCTION = FALSE;
 
+    rx_index = -1;
 
     UCA0CTL1 &= ~UCSWRST; // Disable Software reset.
 }

@@ -55,7 +55,7 @@ static void renderTickle()
     halLcdPrintLineCol("x", ( __kernel_menu_selectedProgram % __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 2, 1, INVERT_TEXT);
 }
 
-void renderMenu()
+static void renderMenu()
 {
     byte i;
     byte page = __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
@@ -72,7 +72,7 @@ void renderMenu()
     {   // Write programs available at current page
         for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE && i < __kernel_menu_storedPrograms ; i++ )
         {
-            halLcdPrintLineCol(__kernel_menu_programs[page + i].tag, i + 2, 3, OVERWRITE_TEXT);
+            halLcdPrintLineCol(__kernel_menu_programs[( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + i].tag, i + 2, 3, OVERWRITE_TEXT);
         }
     }
 

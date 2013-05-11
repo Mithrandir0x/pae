@@ -52,7 +52,7 @@ void main()
     kerMenu_bootstrap();
 
     diag_sensor_bootstrap();
-    //test_motors_bootstrap();
+    test_motors_bootstrap();
 
     while (1)
     {
