@@ -6,6 +6,7 @@
 #include <hal.h>
 #include <kernel.h>
 #include "../../lib/motor.h"
+#include "test_motors.h"
 
 volatile int __TEST_MOTORS_MOVE_FORWARD = FALSE;
 volatile int __TEST_MOTORS_MOVE_BACKWARD = FALSE;
@@ -32,9 +33,9 @@ static void test_motors_on_program_start()
 
     _enable_interrupt();
 
-    motor_setSpeed(256);
-
     halBioCom_initialize();
+
+    motor_setSpeed(256);
 }
 
 static void test_motors_on_program_update()
@@ -75,6 +76,12 @@ static void test_motors_on_program_stop()
     motor_stop();
     motor_setSpeed(0);
 
+    __TEST_MOTORS_MOVE_FORWARD = FALSE;
+    __TEST_MOTORS_MOVE_BACKWARD = FALSE;
+    __TEST_MOTORS_STOP = FALSE;
+    __TEST_MOTORS_TURN_LEFT = FALSE;
+    __TEST_MOTORS_TURN_RIGHT = FALSE;
+
     halBioCom_shutdown();
 }
 
@@ -103,6 +110,9 @@ static void test_motors_on_button_pressed()
             break;
         case JOYSTICK_DOWN:
             __TEST_MOTORS_MOVE_BACKWARD = TRUE;
+            break;
+        case JOYSTICK_CENTER:
+            __TEST_MOTORS_STOP = TRUE;
             break;
         case BUTTON_S1:
             __TEST_MOTORS_STOP = TRUE;

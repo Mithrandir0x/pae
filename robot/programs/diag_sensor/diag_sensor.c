@@ -9,12 +9,13 @@
 int __diag_sensor_updateData = FALSE;
 int __diag_sensor_pollMode = DIAG_SENSOR_IR;
 
-char __lcd_buffer[17];
+extern char __lcd_buffer[17];
 
 static void on_program_start()
 {
     halLcdPrintLine("SENSOR DIAG.", 0, INVERT_TEXT);
 
+    halTimer_b_enableInterruptCCR0();
     halTimer_a1_enableInterruptCCR0();
 
     halBioCom_initialize();
@@ -31,6 +32,8 @@ static void on_program_update()
 
     if ( __diag_sensor_updateData )
     {
+        __diag_sensor_updateData = FALSE;
+
         if ( __diag_sensor_pollMode == DIAG_SENSOR_IR )
             data = kerBioAXS1_getIR(100);
         else if ( __diag_sensor_pollMode == DIAG_SENSOR_LUMINOSITY )
@@ -49,6 +52,8 @@ static void on_program_update()
 
 static void on_program_stop()
 {
+    halTimer_b_disableInterruptCCR0();
+    halTimer_a1_disableInterruptCCR0();
     halBioCom_shutdown();
 }
 
@@ -64,20 +69,20 @@ static void on_timer_a1_isr()
 
 static void on_button_pressed()
 {
-    switch ( P2IE )
+    switch ( P2IFG )
     {
         case JOYSTICK_CENTER:
-            kerMenu_exitProgram();
-            break;
-        case BUTTON_S1:
-            __diag_sensor_pollMode = DIAG_SENSOR_IR;
+            if ( __diag_sensor_pollMode == DIAG_SENSOR_IR )
+                __diag_sensor_pollMode = DIAG_SENSOR_LUMINOSITY;
+            else
+                __diag_sensor_pollMode = DIAG_SENSOR_IR;
             break;
         case BUTTON_S2:
-            __diag_sensor_pollMode = DIAG_SENSOR_LUMINOSITY;
+            kerMenu_exitProgram();
             break;
     }
 
-    P2IE = 0;
+    P2IFG = 0;
 }
 
 void diag_sensor_bootstrap()
