@@ -220,3 +220,23 @@ int kerBioAX12_getPresentSpeed(int id)
     return result;
 }
 
+int kerBioAX12_getPresentPosition(int id)
+{
+    int result;
+    byte* rx = halBioCom_getRX();
+
+    halBioCom_setInstruction(INS_READ_DATA);
+    halBioCom_addParameter(MEM_PRES_POS_L);
+    halBioCom_addParameter(0x02);
+
+    result = halBioCom_transmit(id);
+
+    if ( result != ERROR && rx[4] == ERR_NONE )
+    {
+        // rx[5] MEM_PRES_POS_L
+        // rx[6] MEM_PRES_POS_H
+        return ( rx[5] | ( rx[6] << 8 ) );
+    }
+
+    return result;
+}

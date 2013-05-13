@@ -20,5 +20,6 @@ void kerBioAX12_registerInstruction();
 int kerBioAX12_getVoltage(int id);
 int kerBioAX12_getTemperature(int id);
 int kerBioAX12_getPresentSpeed(int id);
+int kerBioAX12_getPresentPosition(int id, int degrees);
 
 #endif
