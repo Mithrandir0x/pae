@@ -58,21 +58,22 @@ static void renderTickle()
 static void renderMenu()
 {
     byte i;
+    byte n;
     byte page = __kernel_menu_selectedProgram / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
     char __lcd_buffer[17];
 
     halLcdClearScreen();
     halLcdPrintLineCol("BOT MK1", 0, 1, OVERWRITE_TEXT);
 
-    {   // Write program page number X/X
+    {   // Write program page number X:X
         sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_totalPages + 1);
         halLcdPrintLineCol(__lcd_buffer, 0, 13, OVERWRITE_TEXT);
     }
 
     {   // Write programs available at current page
-        for ( i = 0 ; i < __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE && i < __kernel_menu_storedPrograms ; i++ )
+        for ( i = 0, n = ( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) ; i < __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE && ( n + i ) < __kernel_menu_storedPrograms ; i++ )
         {
-            halLcdPrintLineCol(__kernel_menu_programs[( page * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + i].tag, i + 2, 3, OVERWRITE_TEXT);
+            halLcdPrintLineCol(__kernel_menu_programs[n + i].tag, i + 2, 3, OVERWRITE_TEXT);
         }
     }
 
@@ -227,7 +228,7 @@ void kerMenu_registerProgram(char* tag,
         __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramStopCallback = onProgramStopCallback;
 
         __kernel_menu_storedPrograms++;
-        __kernel_menu_totalPages = __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+        __kernel_menu_totalPages = ( __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 1;
     }
 }
 

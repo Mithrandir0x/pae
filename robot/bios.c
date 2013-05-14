@@ -8,6 +8,7 @@
 #include "programs/diag_sensor/diag_sensor.h"
 #include "programs/test_motors/test_motors.h"
 #include "programs/test_pres_pos/test_pres_pos.h"
+#include "programs/test_accel/test_accel.h"
 
 // Allow other programs to reuse LCD write buffer
 char __lcd_buffer[17];
@@ -55,6 +56,7 @@ void main()
     diag_sensor_bootstrap();
     test_motors_bootstrap();
     test_pres_pos_bootstrap();
+    test_accel_bootstrap();
 
     while (1)
     {

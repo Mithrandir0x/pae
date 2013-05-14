@@ -7,6 +7,7 @@
 
 #include <msp430x54xa.h>
 
+#include "hal_adc.h"
 #include "hal_bio_com.h"
 #include "hal_buttons.h"
 #include "hal_common.h"
