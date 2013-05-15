@@ -249,8 +249,6 @@ int halBioCom_transmit(byte id)
     if ( id != AX12_BROADCAST_ID )
         result = receive();
 
-    SET_TX;
-
     return result;
 }
 
@@ -377,7 +375,6 @@ void halBioCom_shutdown()
     clearBuffer(__rx);
 
     UCA0CTL0 = 0;
-    UCA0CTL1 = 1;
 
     UCA0BR0 = 0;
     UCA0BR1 = 0;

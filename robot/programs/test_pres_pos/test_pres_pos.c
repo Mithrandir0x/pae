@@ -16,14 +16,19 @@ volatile int __TEST_PRES_POS_STOP = FALSE;
 
 extern char __lcd_buffer[17];
 
+int __test_pres_pos_killProgram = FALSE;
+
 static void onProgramStart()
 {
+    halTimer_b_enableInterruptCCR0();
     halTimer_a1_enableInterruptCCR0();
     halBioCom_initialize();
 
     halLcdPrintLine("CURRENT POS.", 0, INVERT_TEXT);
 
     motor_setSpeed(32);
+
+    __test_pres_pos_killProgram = FALSE;
 
     TB0CCR0 = 32 * 25; // Each 25 milliseconds it will update the window state
 }
@@ -32,25 +37,26 @@ static void onProgramUpdate()
 {
     int data;
 
-    if ( __TEST_PRES_POS_MOVE_FORWARD )
+    if ( __test_pres_pos_killProgram )
+    {
+        kerMenu_exitProgram();
+    }
+    else if ( __TEST_PRES_POS_MOVE_FORWARD )
     {
         __TEST_PRES_POS_MOVE_FORWARD = FALSE;
         motor_advance();
     }
-
-    if ( __TEST_PRES_POS_MOVE_BACKWARD )
+    else if ( __TEST_PRES_POS_MOVE_BACKWARD )
     {
         __TEST_PRES_POS_MOVE_BACKWARD = FALSE;
         motor_retreat();
     }
-
-    if ( __TEST_PRES_POS_STOP )
+    else if ( __TEST_PRES_POS_STOP )
     {
         __TEST_PRES_POS_STOP = FALSE;
         motor_stop();
     }
-
-    if ( __TEST_PRES_POS_updatePresPos )
+    else if ( __TEST_PRES_POS_updatePresPos )
     {
         __TEST_PRES_POS_updatePresPos = FALSE;
 
@@ -75,7 +81,9 @@ static void onButtonPressed()
             __TEST_PRES_POS_STOP = TRUE;
             break;
         case BUTTON_S2:
-            kerMenu_exitProgram();
+            halTimer_a1_disableInterruptCCR0();
+            halTimer_b_disableInterruptCCR0();
+            __test_pres_pos_killProgram = TRUE;
             break;
     }
 
@@ -88,7 +96,6 @@ static void onProgramStop()
     __TEST_PRES_POS_MOVE_BACKWARD = FALSE;
     __TEST_PRES_POS_STOP = FALSE;
 
-    halTimer_a1_disableInterruptCCR0();
     halBioCom_shutdown();
 }
 

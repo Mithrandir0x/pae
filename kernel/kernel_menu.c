@@ -66,7 +66,7 @@ static void renderMenu()
     halLcdPrintLineCol("BOT MK1", 0, 1, OVERWRITE_TEXT);
 
     {   // Write program page number X:X
-        sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_totalPages + 1);
+        sprintf(__lcd_buffer, "%d:%d", page + 1, __kernel_menu_totalPages);
         halLcdPrintLineCol(__lcd_buffer, 0, 13, OVERWRITE_TEXT);
     }
 
@@ -95,16 +95,16 @@ static void onButtonPressed()
     switch ( P2IFG )
     {
         case JOYSTICK_RIGHT:
-            if ( page < __KERNEL_MENU_MAX_PAGES && page < __kernel_menu_totalPages )
+            if ( ( page + 1 ) < __KERNEL_MENU_MAX_PAGES && ( page + 1 ) < __kernel_menu_totalPages )
             {
-                __kernel_menu_selectedProgram = ( page - 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+                __kernel_menu_selectedProgram = ( page + 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
         case JOYSTICK_LEFT:
             if ( page > 0 )
             {
-                __kernel_menu_selectedProgram = ( page + 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
+                __kernel_menu_selectedProgram = ( page - 1 ) * __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE;
                 __kernel_menu_updateMenu = TRUE;
             }
             break;
@@ -119,7 +119,7 @@ static void onButtonPressed()
                 __kernel_menu_updateMenu = TRUE;
             break;
         case JOYSTICK_DOWN:
-            if ( __kernel_menu_selectedProgram < __kernel_menu_storedPrograms )
+            if ( ( __kernel_menu_selectedProgram + 1 ) < __kernel_menu_storedPrograms )
             {
                 __kernel_menu_selectedProgram++;
                 __kernel_menu_updateTick = TRUE;
@@ -227,8 +227,8 @@ void kerMenu_registerProgram(char* tag,
         __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramUpdateCallback = onProgramUpdateCallback;
         __kernel_menu_programs[__kernel_menu_storedPrograms].onProgramStopCallback = onProgramStopCallback;
 
-        __kernel_menu_storedPrograms++;
         __kernel_menu_totalPages = ( __kernel_menu_storedPrograms / __KERNEL_MENU_MAX_PROGRAMS_PER_PAGE ) + 1;
+        __kernel_menu_storedPrograms++;
     }
 }
 
@@ -269,6 +269,9 @@ F_PTR kerMenu_getOnProgramInitializeCallback()
 
 F_PTR kerMenu_getOnProgramUpdateCallback()
 {
+    if ( __kernel_menu_initializeProgram )
+        return __kernel_menu_programs[KERNEL_MENU_PROGRAM_ID].onProgramUpdateCallback;
+
     return __kernel_menu_programs[__kernel_menu_executingProgram].onProgramUpdateCallback;
 }
 

@@ -9,6 +9,8 @@
 int __diag_sensor_updateData = FALSE;
 int __diag_sensor_pollMode = DIAG_SENSOR_IR;
 
+int __diag_sensor_killProgram = FALSE;
+
 extern char __lcd_buffer[17];
 
 static void on_program_start()
@@ -22,6 +24,7 @@ static void on_program_start()
 
     __diag_sensor_updateData = FALSE;
     __diag_sensor_pollMode = DIAG_SENSOR_IR;
+    __diag_sensor_killProgram = FALSE;
 
     TB0CCR0 = 32 * 25; // Each 25 milliseconds it will update the window state
 }
@@ -30,14 +33,22 @@ static void on_program_update()
 {
     SENSOR_DATA data;
 
-    if ( __diag_sensor_updateData )
+    if ( __diag_sensor_killProgram )
     {
-        __diag_sensor_updateData = FALSE;
-
+        kerMenu_exitProgram();
+    }
+    else if ( __diag_sensor_updateData )
+    {
         if ( __diag_sensor_pollMode == DIAG_SENSOR_IR )
+        {
+            halLcdPrintLine("MODE: IR ", 1, OVERWRITE_TEXT);
             data = kerBioAXS1_getIR(100);
+        }
         else if ( __diag_sensor_pollMode == DIAG_SENSOR_LUMINOSITY )
+        {
+            halLcdPrintLine("MODE: LUM", 1, OVERWRITE_TEXT);
             data = kerBioAXS1_getLuminosity(100);
+        }
 
         sprintf(__lcd_buffer, "  LEFT: %03d", data.left);
         halLcdPrintLineCol(__lcd_buffer, 3, 1, OVERWRITE_TEXT);
@@ -52,8 +63,12 @@ static void on_program_update()
 
 static void on_program_stop()
 {
+    TB0CCR0 = 0;
+    TA1CCR0 = 0;
+
     halTimer_b_disableInterruptCCR0();
     halTimer_a1_disableInterruptCCR0();
+
     halBioCom_shutdown();
 }
 
@@ -78,11 +93,9 @@ static void on_button_pressed()
                 __diag_sensor_pollMode = DIAG_SENSOR_IR;
             break;
         case BUTTON_S2:
-            kerMenu_exitProgram();
+            __diag_sensor_killProgram = TRUE;
             break;
     }
-
-    P2IFG = 0;
 }
 
 void diag_sensor_bootstrap()
