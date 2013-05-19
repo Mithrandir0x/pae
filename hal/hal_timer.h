@@ -33,10 +33,12 @@
 #define TIMER_A1_CCRX_VECTOR TIMER1_A1_VECTOR
 
 void halTimer_a1_initialize(int source, int mode);
+void halTimer_a1_shutdown();
 void halTimer_a1_setCCRTimedInterruption(int ccr, unsigned int time);
 void halTimer_a1_setCCRMicroTimedInterruption(int ccr, unsigned int time);
 
 void halTimer_b_initialize(int source, int mode);
+void halTimer_b_shutdown();
 void halTimer_b_setCCRTimedInterruption(int ccr, unsigned int time);
 void halTimer_b_setCCRMicroTimedInterruption(int ccr, unsigned int time);
 

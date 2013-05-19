@@ -17,6 +17,12 @@ void halLed_sx_initialize()
     P1SEL &= ~LED_SX_ALL; // Port lines P1.0 and P1.1 as GPIO
 }
 
+void halLed_sx_shutdown()
+{
+    P1SEL &= ~LED_SX_ALL;
+    P1DIR &= ~LED_SX_ALL;
+}
+
 /**
  * Set the state of the LED1, either ON or OFF.
  *
@@ -46,6 +52,12 @@ void halLed_rx_initialize()
 {
     P4DIR |=  LED_RX_ALL;  // Port lines P4.0 and P4.1 as OUTPUT
     P4SEL &= ~LED_RX_ALL; // Port lines P4.0 and P4.1 as GPIO
+}
+
+void halLed_rx_shutdown()
+{
+    P4SEL &= ~LED_RX_ALL;
+    P4DIR &= ~LED_RX_ALL;
 }
 
 /**

@@ -21,6 +21,14 @@ void halButtons_initialize()
 	P2IES &= ~BUTTON_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
 }
 
+void halButtons_shutdown()
+{
+    P2IES &= ~BUTTON_ALL;
+    P2IE  &= ~BUTTON_ALL;
+    P2REN &= ~BUTTON_ALL;
+    P2OUT &= ~BUTTON_ALL;
+}
+
 /**
  * Set the state of button interruptions.
  *
@@ -56,6 +64,14 @@ void halJoystick_initialize()
     //P2IE  |=  JOYSTICK_ALL; // Enable interruptions for P2.1 to P2.5.
     P2OUT |=  JOYSTICK_ALL; // Set initial state as "Pull-up"
     P2IES &= ~JOYSTICK_ALL; // Set interrupt edge to Low-to-High transition ( http://en.wikipedia.org/wiki/Interrupt#Edge-triggered )
+}
+
+void halJoystick_shutdown()
+{
+    P2IES &= ~JOYSTICK_ALL;
+    P2IE  &= ~JOYSTICK_ALL;
+    P2REN &= ~JOYSTICK_ALL;
+    P2OUT &= ~JOYSTICK_ALL;
 }
 
 /**

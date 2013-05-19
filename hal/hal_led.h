@@ -20,10 +20,12 @@
 #define LED_RX_ALL 0xFF // ( LED_R8 | ... | LED_R1 )
 
 void halLed_sx_initialize();
+void halLed_sx_shutdown();
 void halLed_sx_setLed(int leds, int flag);
 void halLed_sx_toggleLed(int leds);
 
 void halLed_rx_initialize();
+void halLed_rx_shutdown();
 void halLed_rx_setLed(int leds, int flag);
 void halLed_rx_toggleLed(int leds);
 

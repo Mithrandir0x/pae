@@ -113,6 +113,12 @@ void halTimer_a1_initialize(int source, int mode)
     TA1CTL |= ( mode & TX_CTL_MC );
 }
 
+void halTimer_a1_shutdown()
+{
+    halTimer_a1_disableInterruptCCR0();
+    TA1CTL = 0;
+}
+
 /**
  * @param ccr Select which of the CCR do we use to compare. Remember that CCR0 has the utmost priority.
  * @param time Number of time units to wait before interruption.
@@ -153,6 +159,12 @@ void halTimer_b_initialize(int source, int mode)
     TB0CTL = 0;
     TB0CTL |= ( source & TX_CTL_TXSSEL );
     TB0CTL |= ( mode & TX_CTL_MC );
+}
+
+void halTimer_b_shutdown()
+{
+    halTimer_b_disableInterruptCCR0();
+    TB0CTL = 0;
 }
 
 /**
