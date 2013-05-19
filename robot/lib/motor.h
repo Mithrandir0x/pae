@@ -6,6 +6,8 @@
 #define _MOTOR_H_
 
 void motor_setSpeed(unsigned int speed);
+unsigned int motor_getSpeed();
+
 void motor_stop();
 
 void motor_advance();

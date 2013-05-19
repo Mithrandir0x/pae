@@ -7,6 +7,11 @@
 unsigned int __motor_internalSpeed = 0;
 int __motor_flag = 0;
 
+unsigned int motor_getSpeed()
+{
+    return __motor_internalSpeed;
+}
+
 void motor_setSpeed(unsigned int speed)
 {
     __motor_internalSpeed = speed;

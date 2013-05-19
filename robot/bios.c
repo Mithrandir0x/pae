@@ -9,6 +9,8 @@
 #include "programs/test_motors/test_motors.h"
 #include "programs/test_pres_pos/test_pres_pos.h"
 #include "programs/test_accel/test_accel.h"
+#include "programs/robot/robot.h"
+#include "programs/robot_config/robot_config.h"
 
 // Allow other programs to reuse LCD write buffer
 char __lcd_buffer[17];
@@ -53,6 +55,8 @@ void main()
 
     kerMenu_bootstrap();
 
+    robot_bootstrap();
+    robot_config_bootstrap();
     diag_sensor_bootstrap();
     test_motors_bootstrap();
     test_pres_pos_bootstrap();
