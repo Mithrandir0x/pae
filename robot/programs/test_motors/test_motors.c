@@ -43,43 +43,47 @@ static void test_motors_on_program_start()
 
 static void test_motors_on_program_update()
 {
-    if ( __TEST_MOTORS_MOVE_FORWARD )
-    {
-        __TEST_MOTORS_MOVE_FORWARD = FALSE;
-        motor_advance();
-        halLcdPrintLine("  ADVANCING    ", 4, OVERWRITE_TEXT | INVERT_TEXT);
-    }
-
-    if ( __TEST_MOTORS_MOVE_BACKWARD )
-    {
-        __TEST_MOTORS_MOVE_BACKWARD = FALSE;
-        motor_retreat();
-        halLcdPrintLine("  RETREATING   ", 4, OVERWRITE_TEXT | INVERT_TEXT);
-    }
-
-    if ( __TEST_MOTORS_STOP )
-    {
-        __TEST_MOTORS_STOP = FALSE;
-        motor_stop();
-        halLcdPrintLine("  STOPPED      ", 4, OVERWRITE_TEXT | INVERT_TEXT);
-    }
-
-    if ( __TEST_MOTORS_TURN_LEFT )
-    {
-        __TEST_MOTORS_TURN_LEFT = FALSE;
-        motor_turnLeft();
-        halLcdPrintLine("  TURNING LEFT ", 4, OVERWRITE_TEXT | INVERT_TEXT);
-    }
-
-    if ( __TEST_MOTORS_TURN_RIGHT )
-    {
-        __TEST_MOTORS_TURN_RIGHT = FALSE;
-        motor_turnRight();
-        halLcdPrintLine("  TURNING RIGHT", 4, OVERWRITE_TEXT | INVERT_TEXT);
-    }
-
     if ( __test_motors_signal_exit )
+    {
         kerMenu_exitProgram();
+    }
+    else
+    {
+        if ( __TEST_MOTORS_MOVE_FORWARD )
+        {
+            __TEST_MOTORS_MOVE_FORWARD = FALSE;
+            motor_advance();
+            halLcdPrintLine("  ADVANCING    ", 4, OVERWRITE_TEXT | INVERT_TEXT);
+        }
+
+        if ( __TEST_MOTORS_MOVE_BACKWARD )
+        {
+            __TEST_MOTORS_MOVE_BACKWARD = FALSE;
+            motor_retreat();
+            halLcdPrintLine("  RETREATING   ", 4, OVERWRITE_TEXT | INVERT_TEXT);
+        }
+
+        if ( __TEST_MOTORS_STOP )
+        {
+            __TEST_MOTORS_STOP = FALSE;
+            motor_stop();
+            halLcdPrintLine("  STOPPED      ", 4, OVERWRITE_TEXT | INVERT_TEXT);
+        }
+
+        if ( __TEST_MOTORS_TURN_LEFT )
+        {
+            __TEST_MOTORS_TURN_LEFT = FALSE;
+            motor_turnLeft();
+            halLcdPrintLine("  TURNING LEFT ", 4, OVERWRITE_TEXT | INVERT_TEXT);
+        }
+
+        if ( __TEST_MOTORS_TURN_RIGHT )
+        {
+            __TEST_MOTORS_TURN_RIGHT = FALSE;
+            motor_turnRight();
+            halLcdPrintLine("  TURNING RIGHT", 4, OVERWRITE_TEXT | INVERT_TEXT);
+        }
+    }
 }
 
 static void test_motors_on_program_stop()
@@ -100,6 +104,7 @@ static void test_motors_on_program_stop()
     TA1CCR0 = 0;
 
     halBioCom_shutdown();
+    halLed_sx_shutdown();
 
     halTimer_a1_disableInterruptCCR0();
     halTimer_b_disableInterruptCCR0();
