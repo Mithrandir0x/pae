@@ -130,14 +130,14 @@ static void onButtonPressed()
 
 void robot_config_bootstrap()
 {
-    param_list[0] = GetSet("INTR:", &robot_getUpdateInterval, &robot_setUpdateInterval);
-    param_list[1] = GetSet("TH A:", &robot_getThresholdA, &robot_setThresholdA);
-    param_list[2] = GetSet("TH B:", &robot_getThresholdB, &robot_setThresholdB);
-    param_list[3] = GetSet("TH C:", &robot_getThresholdC, &robot_setThresholdC);
-    param_list[4] = GetSet(" CPM:", &robot_getConvexPanicMax, &robot_setConvexPanicMax);
-    param_list[5] = GetSet(" SPD:", &robot_getSpeed, &robot_setSpeed);
+    param_list[0] = GetSet("INTR ", &robot_getUpdateInterval, &robot_setUpdateInterval);
+    param_list[1] = GetSet("TH A ", &robot_getThresholdA, &robot_setThresholdA);
+    param_list[2] = GetSet("TH B ", &robot_getThresholdB, &robot_setThresholdB);
+    param_list[3] = GetSet("TH C ", &robot_getThresholdC, &robot_setThresholdC);
+    param_list[4] = GetSet(" CPM ", &robot_getConvexPanicMax, &robot_setConvexPanicMax);
+    param_list[5] = GetSet(" SPD ", &robot_getSpeed, &robot_setSpeed);
 
-    kerMenu_registerProgram("robot config.", &onProgramStart,
+    kerMenu_registerProgram("robot conf", &onProgramStart,
                     &onProgramUpdate, &onProgramStop,
                     &onButtonPressed, NULL,
                     NULL);
