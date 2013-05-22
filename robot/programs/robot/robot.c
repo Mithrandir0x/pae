@@ -11,7 +11,6 @@
 
 typedef enum { IDLE, ALIGN, MOVE } ROBOT_STATE;
 
-static SENSOR_DATA sensorData;
 static ROBOT_STATE robotState;
 
 static int killProgram = FALSE;
@@ -32,8 +31,6 @@ static byte THRESHOLD_C = 255;
 static byte CONVEX_PANIC_MAX = 20;
 
 static byte convexPanicCnt = 0;
-static byte concavePanicCnt = 0;
-static byte nearObstacleCnt = 0;
 
 extern char __lcd_buffer[17];
 
@@ -53,13 +50,7 @@ static void onProgramStart()
     stopRobot = FALSE;
     assumingDirectControl = FALSE;
 
-    sensorData.left = 0;
-    sensorData.right = 0;
-    sensorData.center = 0;
-
     convexPanicCnt = 0;
-    concavePanicCnt = 0;
-    nearObstacleCnt = 0;
 
     motor_setSpeed(256);
 
@@ -67,16 +58,6 @@ static void onProgramStart()
     robotState = IDLE;
 
     TB0CCR0 = 32 * INTERVAL;
-}
-
-static int inRange(byte pointFixed, byte point, byte radius)
-{
-    return point >= ( pointFixed - radius ) && point <= ( pointFixed + radius );
-}
-
-static int atLeast(byte pointFixed, byte point)
-{
-    return point >= pointFixed;
 }
 
 static void onProgramUpdate()
@@ -132,10 +113,6 @@ static void onProgramUpdate()
     {
         data = kerBioAXS1_getIR(100);
 
-        sensorData.left = data.left;
-        sensorData.right = data.right;
-        sensorData.center = data.center;
-
         sprintf(__lcd_buffer, "  LEFT: %03d", data.left);
         halLcdPrintLineCol(__lcd_buffer, 3, 1, OVERWRITE_TEXT);
 
@@ -145,15 +122,6 @@ static void onProgramUpdate()
         sprintf(__lcd_buffer, " RIGHT: %03d", data.right);
         halLcdPrintLineCol(__lcd_buffer, 5, 1, OVERWRITE_TEXT);
 
-        /* if ( inRange(THRESHOLD_B, sensorData.left, 30) )
-        {
-            halLcdPrintLine("IN RANGE    ", 7, OVERWRITE_TEXT | INVERT_TEXT);
-        }
-        else
-        {
-            halLcdPrintLine("OUT OF RANGE", 7, OVERWRITE_TEXT | INVERT_TEXT);
-        } */
-
         if ( robotState == ALIGN )
         {
             // Alignment logic
@@ -161,48 +129,59 @@ static void onProgramUpdate()
 
         if ( robotState == MOVE )
         {
-            // CW Movement logic
-            motor_setSpeed(256);
+            // I'm silly, so I just want to go ahead
             action = &motor_advance;
 
-            if ( data.center >= 255 || concavePanicCnt > 0 )
+            // Woah! An obstacle! I would love to have CUT!
+            if ( data.center == 255 )
             {
-                if ( nearObstacleCnt < 30 )
+                // Hey, there's something left to me
+                if ( data.left != 0 )
                 {
-                    nearObstacleCnt++;
+                    action = &motor_turnRight;
                 }
-                else
+                // Nope, there's something right to me
+                else if ( data.right != 0 )
                 {
-                    if ( concavePanicCnt < 27 )
-                    {
-                        concavePanicCnt++;
-                        motor_setSpeed(512);
-                        action = &motor_turnRight;
-                    }
-                    else
-                    {
-                        concavePanicCnt = 0;
-                        nearObstacleCnt = 0;
-                    }
-                }
-            }
-
-            //if ( inRange(THRESHOLD_B, sensorData.left, 30) )
-            //if ( atLeast(THRESHOLD_B, sensorData.left) )
-            if ( data.left > 150 )
-            {
-                convexPanicCnt = 0;
-                //if ( sensorData.center > THRESHOLD_C )
-            }
-            else
-            {
-                convexPanicCnt++;
-                if ( convexPanicCnt >= 95 )
-                {
-                    motor_setSpeed(512);
                     action = &motor_turnLeft;
                 }
+                // Oh shit, IT'S A TRAP!!!
+                else if ( data.left != 0 && data.right != 0 )
+                {
+                    action = &motor_stop;
+                }
+            }
 
+            // Am I too far from the wall?
+            if ( data.left < 140 )
+            {
+                action = &motor_turnLeft;
+            }
+
+            // Am I too close to the wall?
+            if ( data.left > 240 )
+            {
+                action = &motor_turnRight;
+            }
+
+            // So, still on track?
+            if ( data.left >= 140 && data.left <= 240 )
+            {
+                convexPanicCnt = 0;
+            }
+
+            // Hey, where's the wall?
+            if ( data.left == 0 )
+            {
+                convexPanicCnt++;
+                action = &motor_advance;
+                // I have a hell of a bum, with my current speed,
+                // have I advanced enough to turn left graciously
+                // without my bum hitting the box?
+                if ( convexPanicCnt >= 95 )
+                {
+                    action = &motor_turnLeft;
+                }
             }
 
             action();
