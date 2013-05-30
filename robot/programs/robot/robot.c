@@ -25,10 +25,12 @@ static int __TEST_MOTORS_TURN_LEFT = FALSE;
 static int __TEST_MOTORS_TURN_RIGHT = FALSE;
 
 static byte INTERVAL = 50;   // Number of milliseconds to wait before updating again the robot state
-static byte THRESHOLD_A = 0;
-static byte THRESHOLD_B = 20;
-static byte THRESHOLD_C = 255;
+static byte THRESHOLD_LEFT = 35;
+static byte THRESHOLD_RIGHT = 245;
+static byte THRESHOLD_LEFT_ALT = 140;
 static byte CONVEX_PANIC_MAX = 20;
+
+static int SPEED = 350;
 
 static byte convexPanicCnt = 0;
 
@@ -52,7 +54,7 @@ static void onProgramStart()
 
     convexPanicCnt = 0;
 
-    motor_setSpeed(256);
+    motor_setSpeed(SPEED);
 
     convexPanicCnt = CONVEX_PANIC_MAX;
     robotState = IDLE;
@@ -138,34 +140,35 @@ static void onProgramUpdate()
                 // Hey, there's something left to me
                 if ( data.left != 0 )
                 {
-                    action = &motor_turnRight;
+                    action = &motor_moveRight;
                 }
                 // Nope, there's something right to me
-                else if ( data.right != 0 )
+                /*else if ( data.right != 0 )
                 {
                     action = &motor_turnLeft;
-                }
+                }*/
                 // Oh shit, IT'S A TRAP!!!
                 else if ( data.left != 0 && data.right != 0 )
                 {
                     action = &motor_stop;
+                    robotState = IDLE;
                 }
             }
 
             // Am I too far from the wall?
-            if ( data.left < 140 )
+            if ( data.left < THRESHOLD_LEFT ) // THRESHOLD_LEFT
             {
                 action = &motor_turnLeft;
             }
 
             // Am I too close to the wall?
-            if ( data.left > 240 )
+            if ( data.left > THRESHOLD_RIGHT ) // THRESHOLD_RIGHT
             {
                 action = &motor_turnRight;
             }
 
             // So, still on track?
-            if ( data.left >= 140 && data.left <= 240 )
+            if ( data.left >= THRESHOLD_LEFT_ALT && data.left <= THRESHOLD_RIGHT )
             {
                 convexPanicCnt = 0;
             }
@@ -178,7 +181,7 @@ static void onProgramUpdate()
                 // I have a hell of a bum, with my current speed,
                 // have I advanced enough to turn left graciously
                 // without my bum hitting the box?
-                if ( convexPanicCnt >= 95 )
+                if ( convexPanicCnt >= 2 )
                 {
                     action = &motor_turnLeft;
                 }
@@ -279,17 +282,14 @@ void robot_bootstrap()
 byte robot_getUpdateInterval() { return INTERVAL; }
 void robot_setUpdateInterval(byte t) { INTERVAL = t; }
 
-byte robot_getThresholdA() { return THRESHOLD_A; }
-void robot_setThresholdA(byte a) { THRESHOLD_A = a; }
+byte robot_getThresholdLeft() { return THRESHOLD_LEFT; }
+void robot_setThresholdLeft(byte a) { THRESHOLD_LEFT = a; }
 
-byte robot_getThresholdB() { return THRESHOLD_B; }
-void robot_setThresholdB(byte b) { THRESHOLD_B = b; }
+byte robot_getThresholdRight() { return THRESHOLD_RIGHT; }
+void robot_setThresholdRight(byte b) { THRESHOLD_RIGHT = b; }
 
-byte robot_getThresholdC() { return THRESHOLD_C; }
-void robot_setThresholdC(byte c) { THRESHOLD_C = c; }
+byte robot_getThresholdLeftAlt() { return THRESHOLD_LEFT_ALT; }
+void robot_setThresholdLeftAlt(byte c) { THRESHOLD_LEFT_ALT = c; }
 
 byte robot_getConvexPanicMax() { return CONVEX_PANIC_MAX; }
 void robot_setConvexPanicMax(byte cpm) { CONVEX_PANIC_MAX = cpm; }
-
-byte robot_getSpeed() { return motor_getSpeed(); }
-void robot_setSpeed(byte sp) { motor_setSpeed(sp); }

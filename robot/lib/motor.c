@@ -95,6 +95,14 @@ void motor_retreat()
 #endif
 }
 
+void motor_moveLeft()
+{
+    kerBioAX12_setMovingSpeed(1, __motor_internalSpeed, AX12_CW);
+    kerBioAX12_setMovingSpeed(2, __motor_internalSpeed, AX12_CW);
+    kerBioAX12_setMovingSpeed(3, 0, AX12_CW);
+    kerBioAX12_setMovingSpeed(4, 0, AX12_CW);
+}
+
 void motor_turnLeft()
 {
 #ifndef __MOTOR_DEBUG_MODE
@@ -119,6 +127,14 @@ void motor_turnLeft()
     __motor_flag = kerBioAX12_setMovingSpeed(4, __motor_internalSpeed, AX12_CW);
     halLed_rx_setLed(LED_R4, __motor_flag);
 #endif
+}
+
+void motor_moveRight()
+{
+    kerBioAX12_setMovingSpeed(1, 0, AX12_CCW);
+    kerBioAX12_setMovingSpeed(2, 0, AX12_CCW);
+    kerBioAX12_setMovingSpeed(3, __motor_internalSpeed, AX12_CCW);
+    kerBioAX12_setMovingSpeed(4, __motor_internalSpeed, AX12_CCW);
 }
 
 void motor_turnRight()

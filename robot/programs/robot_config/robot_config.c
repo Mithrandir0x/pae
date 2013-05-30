@@ -8,11 +8,13 @@
 
 #include "../robot/robot.h"
 
+#define VARMAX 4
+
 typedef byte (*F_PTR_GET)();
 typedef void (*F_PTR_SET)(byte);
 
 typedef struct {
-    char tag[4];
+    char tag[5];
     F_PTR_GET getter;
     F_PTR_SET setter;
 } GETSET;
@@ -23,7 +25,7 @@ static int __robot_config_killProgram = FALSE;
 static byte __robot_config_aggregator = 1;
 static byte __robot_config_paramSelected = 0;
 
-static GETSET param_list[6];
+GETSET param_list[VARMAX];
 
 static GETSET GetSet(char* tag, F_PTR_GET getter, F_PTR_SET setter)
 {
@@ -42,9 +44,10 @@ static void onProgramStart()
 
     halLcdPrintLine("ROBOT CONFIG.", 0, INVERT_TEXT);
 
-    for ( i = 0 ; i < 5 ; i++ )
+    for ( i = 0 ; i < VARMAX ; i++ )
     {
-        halLcdPrintLineCol(param_list[i].tag, i + 2, 2, OVERWRITE_TEXT);
+        sprintf(__lcd_buffer, "%s: %03d", param_list[i].tag, param_list[i].getter());
+        halLcdPrintLineCol(__lcd_buffer, i + 2, 2, OVERWRITE_TEXT);
     }
 
     __robot_config_killProgram = FALSE;
@@ -56,7 +59,7 @@ static void clearTickles()
 {
     byte i;
 
-    for ( i = 0 ; i < 5 ; i++ )
+    for ( i = 0 ; i < VARMAX ; i++ )
     {
         halLcdPrintLineCol(" ", i + 2, 1, OVERWRITE_TEXT);
     }
@@ -80,10 +83,10 @@ static void onProgramUpdate()
     {
         renderTickle();
 
-        for ( i = 0 ; i < 5 ; i++ )
+        for ( i = 0 ; i < VARMAX ; i++ )
         {
-            sprintf(__lcd_buffer, "%03d", param_list[i].getter());
-            halLcdPrintLineCol(param_list[i].tag, i + 2, 7, OVERWRITE_TEXT);
+            sprintf(__lcd_buffer, "%s: %03d", param_list[i].tag, param_list[i].getter());
+            halLcdPrintLineCol(__lcd_buffer, i + 2, 2, OVERWRITE_TEXT);
         }
     }
 }
@@ -103,7 +106,7 @@ static void onButtonPressed()
                 __robot_config_paramSelected--;
             break;
         case JOYSTICK_DOWN:
-            if ( __robot_config_paramSelected < 5 )
+            if ( __robot_config_paramSelected < VARMAX - 1 )
                 __robot_config_paramSelected++;
             break;
         case JOYSTICK_LEFT:
@@ -130,12 +133,11 @@ static void onButtonPressed()
 
 void robot_config_bootstrap()
 {
-    param_list[0] = GetSet("INTR ", &robot_getUpdateInterval, &robot_setUpdateInterval);
-    param_list[1] = GetSet("TH A ", &robot_getThresholdA, &robot_setThresholdA);
-    param_list[2] = GetSet("TH B ", &robot_getThresholdB, &robot_setThresholdB);
-    param_list[3] = GetSet("TH C ", &robot_getThresholdC, &robot_setThresholdC);
-    param_list[4] = GetSet(" CPM ", &robot_getConvexPanicMax, &robot_setConvexPanicMax);
-    param_list[5] = GetSet(" SPD ", &robot_getSpeed, &robot_setSpeed);
+    param_list[0] = GetSet("INTR", &robot_getUpdateInterval, &robot_setUpdateInterval);
+    param_list[1] = GetSet("TH L", &robot_getThresholdLeft, &robot_setThresholdLeft);
+    param_list[2] = GetSet("TH R", &robot_getThresholdRight, &robot_setThresholdRight);
+    param_list[3] = GetSet("THLA", &robot_getThresholdLeftAlt, &robot_setThresholdLeftAlt);
+    //param_list[4] = GetSet(" CPM ", &robot_getConvexPanicMax, &robot_setConvexPanicMax);
 
     kerMenu_registerProgram("robot conf", &onProgramStart,
                     &onProgramUpdate, &onProgramStop,

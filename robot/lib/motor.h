@@ -16,4 +16,7 @@ void motor_retreat();
 void motor_turnLeft();
 void motor_turnRight();
 
+void motor_moveLeft();
+void motor_moveRight();
+
 #endif

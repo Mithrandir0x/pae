@@ -12,19 +12,16 @@ void robot_bootstrap();
 byte robot_getUpdateInterval();
 void robot_setUpdateInterval(byte t);
 
-byte robot_getThresholdA();
-void robot_setThresholdA(byte a);
+byte robot_getThresholdLeft();
+void robot_setThresholdLeft(byte a);
 
-byte robot_getThresholdB();
-void robot_setThresholdB(byte b);
+byte robot_getThresholdRight();
+void robot_setThresholdRight(byte b);
 
-byte robot_getThresholdC();
-void robot_setThresholdC(byte c);
+byte robot_getThresholdLeftAlt();
+void robot_setThresholdLeftAlt(byte c);
 
 byte robot_getConvexPanicMax();
 void robot_setConvexPanicMax(byte cpm);
-
-byte robot_getSpeed();
-void robot_setSpeed(byte sp);
 
 #endif
